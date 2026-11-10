@@ -1,0 +1,15 @@
+# Theme values mirror app/styles/tokens.py (BUILD_SPEC 8).
+
+[theme]
+base = "light"
+primaryColor = "#0F5E66"
+backgroundColor = "#FAFAF7"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#1C2430"
+
+[client]
+toolbarMode = "minimal"
+showSidebarNavigation = false
+
+[browser]
+gatherUsageStats = false

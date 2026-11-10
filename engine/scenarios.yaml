@@ -1,0 +1,193 @@
+# The 21 golden scenarios of BUILD_SPEC 6, as data.
+#
+# They are the tests, the quiz and the input to the Review page's "verdict
+# changed" diff, so they live in one reviewable file rather than being
+# duplicated in three places.
+#
+# `expect` and `must_cite` come straight from the BUILD_SPEC 6 table and are
+# checked against it by tests/test_scenarios.py. If a verdict disagrees with
+# them, the rule is wrong or the policy is ambiguous: log it in
+# OPEN_QUESTIONS.md. Never edit a scenario to make a test pass (BUILD_SPEC 6).
+#
+# `quiz_locked: true` marks the four the quiz must always include.
+
+- n: 1
+  title: Summarize a public news article in personal ChatGPT
+  inputs: { data_class: Public, tool: C, activity: drafting }
+  expect: ALLOWED
+  must_cite: ["7.1", "8.10"]
+
+- n: 2
+  title: Paste a client contract into personal ChatGPT
+  inputs: { data_class: Confidential, tool: C, activity: drafting, data_kind: client_info }
+  expect: PROHIBITED
+  must_cite: ["6.7"]
+
+- n: 3
+  title: Draft an internal memo in the approved enterprise tool
+  inputs: { data_class: Internal, tool: A, activity: drafting }
+  expect: ALLOWED
+  must_cite: ["8.10"]
+
+- n: 4
+  title: Summarize an email thread that names colleagues
+  inputs:
+    { data_class: Internal, tool: A, activity: drafting, data_kind: ordinary_personal }
+  expect: ALLOWED
+  must_cite: ["7.5", "8.10"]
+  quiz_locked: true
+
+- n: 5
+  title: AI auto-rejects CVs, no human review
+  inputs:
+    data_class: Confidential
+    tool: A
+    activity: decision_about_person
+    human_review: false
+    hiring: true
+  expect: PROHIBITED
+  must_cite: ["6.6", "8.1"]
+
+- n: 6
+  title: AI ranks CVs, a recruiter decides
+  inputs:
+    data_class: Confidential
+    tool: A
+    activity: decision_about_person
+    human_review: true
+    hiring: true
+  expect: NEEDS_APPROVAL
+  approval_kind: one_time_use_case
+  must_cite: ["8.1", "HR.1"]
+
+- n: 7
+  title: Upload sick-leave notes to the approved tool
+  inputs:
+    { data_class: Restricted, tool: A, activity: drafting, data_kind: hr_health_record }
+  expect: NEEDS_APPROVAL
+  approval_kind: one_time_use_case
+  must_cite: ["7.4", "7.5", "8.6"]
+
+- n: 8
+  title: Agent emails customers on the approved list
+  inputs:
+    data_class: Internal
+    tool: A
+    activity: agent
+    agent_action: message_external
+    recipient_on_allowlist: true
+    within_caps: true
+  expect: NEEDS_APPROVAL
+  approval_kind: one_time_use_case
+  must_cite: ["8.5", "11.3", "C.2"]
+  quiz_locked: true
+
+- n: 9
+  title: Agent emails an address not on the list
+  inputs:
+    data_class: Internal
+    tool: A
+    activity: agent
+    agent_action: message_external
+    recipient_on_allowlist: false
+    within_caps: true
+  expect: NEEDS_APPROVAL
+  approval_kind: per_action
+  must_cite: ["11.3", "C.2"]
+  quiz_locked: true
+
+- n: 10
+  title: Agent pays an allowlisted supplier within its cap
+  inputs:
+    data_class: Confidential
+    tool: A
+    activity: agent
+    agent_action: pay
+    payee_on_allowlist: true
+    within_caps: true
+  expect: NEEDS_APPROVAL
+  approval_kind: one_time_use_case
+  must_cite: ["8.5", "11.3", "C.2"]
+
+- n: 11
+  title: Agent adds a new payee to its own allowlist
+  inputs:
+    data_class: Confidential
+    tool: A
+    activity: agent
+    agent_action: add_payee
+  expect: NOT_PERMITTED
+  must_cite: ["C.2"]
+
+- n: 12
+  title: Paste an API key to debug an error
+  inputs: { data_class: Secrets, tool: A, activity: coding }
+  expect: PROHIBITED
+  must_cite: ["6.3"]
+
+- n: 13
+  title: Webcam emotion detection of employees in meetings
+  inputs:
+    { data_class: Restricted, tool: A, activity: emotion_recognition, data_kind: sensitive_personal }
+  expect: PROHIBITED
+  must_cite: ["6.1"]
+
+- n: 14
+  title: Driver-fatigue detection for the delivery fleet
+  inputs:
+    { data_class: Restricted, tool: A, activity: fatigue_detection, data_kind: sensitive_personal }
+  expect: NEEDS_APPROVAL
+  approval_kind: one_time_use_case
+  must_cite: ["8.7", "8.8"]
+  quiz_locked: true
+
+- n: 15
+  title: Document naming a client in a Tier B tool
+  inputs: { data_class: Confidential, tool: B, activity: drafting, data_kind: client_info }
+  expect: NOT_PERMITTED
+  must_cite: ["B.2.3", "7.1"]
+
+- n: 16
+  title: Customer-support chatbot on the website
+  inputs: { data_class: Internal, tool: A, activity: chatbot }
+  expect: NEEDS_APPROVAL
+  approval_kind: one_time_use_case
+  must_cite: ["8.2", "10.1"]
+
+- n: 17
+  title: Connect the AI assistant to the CRM via MCP
+  inputs: { data_class: Confidential, tool: A, activity: connecting_systems }
+  expect: NEEDS_APPROVAL
+  approval_kind: one_time_use_case
+  must_cite: ["8.9"]
+
+- n: 18
+  title: Approved notetaker in a team meeting
+  inputs: { data_class: Internal, tool: A, activity: notetaker, meeting_type: ordinary }
+  expect: ALLOWED
+  must_cite: ["8.11", "B.6.2"]
+
+- n: 19
+  title: Notetaker in a meeting with legal counsel
+  inputs:
+    { data_class: Confidential, tool: A, activity: notetaker, meeting_type: legal_counsel }
+  expect: NEEDS_APPROVAL
+  approval_kind: one_time_use_case
+  must_cite: ["B.6.3"]
+
+- n: 20
+  title: Open-weight model on a personal laptop, with internal docs
+  inputs:
+    { data_class: Internal, tool: self_hosted, host: personal_device, activity: drafting }
+  expect: NOT_PERMITTED
+  must_cite: ["2.3", "B.1.3"]
+
+- n: 21
+  title: AI-generated intimate image of a real person
+  inputs:
+    data_class: Restricted
+    tool: A
+    activity: synthetic_media
+    sexual_or_intimate: true
+  expect: PROHIBITED
+  must_cite: ["6.2"]

@@ -1,0 +1,514 @@
+/* The only stylesheet. Values come from app/styles/tokens.py, which emits the
+   :root block this file refers to.
+
+   Mobile first: single column, 16px gutters, large tap targets, and nothing
+   that can scroll sideways at 375px. */
+
+/* --- Streamlit chrome ------------------------------------------------- */
+
+/* Hide Streamlit's own toolbar, menu and footer — but NOT the header. With
+   st.navigation(position="top") the page nav is rendered inside the header,
+   so hiding the header leaves no way to move between pages at all. */
+#MainMenu,
+footer,
+[data-testid="stToolbar"],
+[data-testid="stDecoration"],
+[data-testid="stStatusWidget"] {
+  display: none !important;
+}
+
+header[data-testid="stHeader"] {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+/* --- Page shell ------------------------------------------------------- */
+
+html,
+body,
+[data-testid="stAppViewContainer"] {
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+}
+
+/* The header is 60px and absolutely positioned over the content, so the top
+   padding has to clear it or the page title renders underneath the nav. */
+.block-container {
+  max-width: var(--measure);
+  padding: 4rem var(--gutter) 4rem;
+  margin: 0 auto;
+}
+
+/* Keep the nav compact: every pixel here comes out of the hero's budget for
+   reaching a verdict above the fold. */
+header[data-testid="stHeader"] [data-testid="stSidebarNavLink"] {
+  padding-block: 0.3rem;
+}
+
+/* The hero has to reach a verdict without scrolling at 375px (BUILD_SPEC 1),
+   so the default 1rem block gap is tightened. Measured: the default costs
+   about 176px above the card, which is the difference between the verdict
+   landing above the fold and below it. */
+[data-testid="stVerticalBlock"] {
+  gap: 0.6rem;
+}
+
+/* Long clause ids and URLs must wrap rather than widen the page. */
+.block-container,
+.block-container p,
+.block-container li {
+  overflow-wrap: break-word;
+}
+
+h1,
+h2,
+h3 {
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+/* Streamlit sizes markdown headings from a generated class
+   (`.st-emotion-cache-… h1 { font-size: 2.75rem }`) whose name changes
+   between releases, so this targets the stable test id and wins with
+   !important rather than racing an unstable selector. */
+[data-testid="stMarkdownContainer"] h1 {
+  font-size: 1.7rem !important;
+  line-height: 1.2 !important;
+  padding: 0 0 0.15rem !important;
+  margin: 0 !important;
+}
+
+[data-testid="stMarkdownContainer"] h2 {
+  font-size: 1.15rem !important;
+  padding: 0.4rem 0 0.1rem !important;
+}
+
+.cu-lede {
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  margin: 0 0 0.3rem;
+}
+
+/* --- Verdict card ----------------------------------------------------- */
+
+.cu-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.cu-card--allowed { border-left-color: var(--allowed); background: var(--allowed-tint); }
+.cu-card--needs-approval { border-left-color: var(--needs-approval); background: var(--needs-approval-tint); }
+.cu-card--not-permitted { border-left-color: var(--not-permitted); background: var(--not-permitted-tint); }
+.cu-card--prohibited { border-left-color: var(--prohibited); background: var(--prohibited-tint); }
+
+/* Status line: icon + word + colour, so colour is never the only signal.
+   Large bold type, which is where amber meets AA. */
+.cu-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.cu-status__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  font-size: 1rem;
+  color: var(--surface);
+}
+
+.cu-card--allowed .cu-status { color: var(--allowed); }
+.cu-card--allowed .cu-status__icon { background: var(--allowed); }
+.cu-card--needs-approval .cu-status { color: var(--needs-approval); }
+.cu-card--needs-approval .cu-status__icon { background: var(--needs-approval); }
+.cu-card--not-permitted .cu-status { color: var(--not-permitted); }
+.cu-card--not-permitted .cu-status__icon { background: var(--not-permitted); }
+.cu-card--prohibited .cu-status { color: var(--prohibited); }
+.cu-card--prohibited .cu-status__icon { background: var(--prohibited); }
+
+.cu-approval {
+  display: inline-block;
+  margin: 0.45rem 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+
+/* Body copy inside the card always uses --text, never a status colour. */
+.cu-reason {
+  margin: 0.55rem 0 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.cu-subtitle {
+  margin: 0.3rem 0 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+/* --- Clause chips ----------------------------------------------------- */
+
+.cu-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.85rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cu-chip {
+  display: inline-block;
+  padding: 0.3rem 0.55rem;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cu-label {
+  margin: 0.5rem 0 0.1rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+/* --- Requirements and the compliant route ----------------------------- */
+
+.cu-list {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.cu-list li { margin: 0.2rem 0; }
+
+.cu-route {
+  margin: 0.35rem 0 0;
+  padding: 0.65rem 0.75rem;
+  background: var(--surface);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+/* --- Clause drawer ---------------------------------------------------- */
+
+.cu-clause { margin: 0 0 1rem; }
+
+.cu-clause:last-child { margin-bottom: 0; }
+
+.cu-clause__id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.cu-clause__where {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-left: 0.4rem;
+}
+
+.cu-clause__text {
+  margin: 0.25rem 0 0;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+/* --- Backing badges --------------------------------------------------- */
+
+.cu-recheck {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.1rem 0.35rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.cu-source {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text);
+  margin: 0;
+}
+
+.cu-meta {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 0.3rem 0 0;
+}
+
+/* --- Matrix grid ------------------------------------------------------ */
+
+/* Streamlit gives every column `min-width: calc(100% - 24px)` at phone
+   width, which stacks them. A stacked grid is not a grid: you can no longer
+   tell which tier a cell belongs to. This keeps the matrix's own columns
+   side by side, and only the matrix's. */
+.st-key-cu_matrix [data-testid="stHorizontalBlock"] {
+  flex-wrap: nowrap;
+  gap: 0.25rem;
+}
+
+.st-key-cu_matrix [data-testid="stColumn"] {
+  min-width: 0 !important;
+}
+
+.st-key-cu_matrix .stButton button {
+  padding-inline: 0.2rem;
+  font-size: 0.78rem;
+  min-height: 2.5rem;
+}
+
+.cu-grid-head {
+  margin: 0 0 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.cu-grid-row {
+  margin: 0;
+  padding-top: 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cu-hint {
+  margin: 0.4rem 0 0.2rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* --- Quiz ------------------------------------------------------------- */
+
+.cu-score {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.1;
+}
+
+/* A heading inside a card, without the circled status icon. */
+.cu-status--compact {
+  font-size: 1.05rem;
+}
+
+/* --- Review: changed verdicts ----------------------------------------- */
+
+.cu-change {
+  padding: 0.65rem 0.75rem;
+  margin: 0.4rem 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.cu-change__title {
+  margin: 0 0 0.4rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cu-change__flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.cu-pill {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+}
+
+.cu-pill--allowed { background: var(--allowed-tint); border-color: var(--allowed); }
+.cu-pill--needs-approval { background: var(--needs-approval-tint); border-color: var(--needs-approval); }
+.cu-pill--not-permitted { background: var(--not-permitted-tint); border-color: var(--not-permitted); }
+.cu-pill--prohibited { background: var(--prohibited-tint); border-color: var(--prohibited); }
+
+.cu-arrow {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* Stacked on a phone, a sideways arrow at the end of a line reads as if it
+   points at nothing. Turn it to point at the pill below instead. */
+@media (max-width: 520px) {
+  .cu-change__flow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+  }
+
+  .cu-arrow {
+    display: inline-block;
+    transform: rotate(90deg);
+    margin-left: 0.6rem;
+  }
+}
+
+/* --- Footer ----------------------------------------------------------- */
+
+.cu-footer {
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.78rem;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+.cu-footer strong { color: var(--text); font-weight: 600; }
+
+.cu-footer__row { display: block; }
+
+/* --- Streamlit widget tuning ------------------------------------------ */
+
+/* Large tap targets on phones, 44px being the usual minimum. */
+[data-testid="stButtonGroup"] button,
+.stButton button {
+  min-height: 2.75rem;
+}
+
+/* The example chips: compact enough that more than one fits a 375px row. */
+.stButton button {
+  padding-inline: 0.65rem;
+  font-size: 0.85rem;
+}
+
+/* Widget labels sit tight to their control. */
+[data-testid="stWidgetLabel"] p {
+  font-size: 0.92rem;
+  margin-bottom: 0.15rem;
+}
+
+div[data-testid="stExpander"] details {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* Keep the example chip row from forcing a sideways scroll. */
+[data-testid="stButtonGroup"] { flex-wrap: wrap; }
+
+/* Several clauses carry a table — 7.1, Section 4's definitions, B.3's rubric,
+   B.4 and C.2. At 375px the widest of them runs to about 430px, so each table
+   scrolls inside its own box rather than cutting off or widening the page. */
+[data-testid="stMarkdownContainer"] table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+[data-testid="stMarkdownContainer"] th,
+[data-testid="stMarkdownContainer"] td {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--border);
+  vertical-align: top;
+}
+
+[data-testid="stMarkdownContainer"] th {
+  background: var(--bg);
+  text-align: left;
+  font-weight: 600;
+}
+
+/* Streamlit's copy button on a code block is 24px square, below a comfortable
+   tap target, and it is how "Copy link" is used. */
+[data-testid="stBaseButton-elementToolbar"] {
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+}
+
+@media (max-width: 480px) {
+  h1 { font-size: 1.4rem; }
+  .cu-status { font-size: 1.15rem; }
+  .block-container { padding-left: var(--gutter); padding-right: var(--gutter); }
+}
+
+/* --- Template fields --------------------------------------------------- */
+
+/* This is a model policy, so fields like [Organization name] are meant to be
+   filled in on adoption. Marking them as fields shows that on purpose,
+   rather than leaving stray brackets on the page. */
+.cu-template {
+  display: inline-block;
+  padding: 0.05rem 0.4rem;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  font-size: 0.82em;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.cu-fields {
+  width: 100%;
+  margin: 0.4rem 0 0.2rem;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.cu-fields th,
+.cu-fields td {
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.cu-fields th {
+  width: 40%;
+  font-weight: 600;
+  color: var(--muted);
+}

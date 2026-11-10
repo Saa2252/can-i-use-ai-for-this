@@ -1,0 +1,150 @@
+# Regulatory backing layer ("Backed by") — BUILD_SPEC 7.
+#
+# The policy decides the verdict. This layer only explains why the rule
+# exists. A verdict NEVER changes based on jurisdiction, because 1.2 already
+# applies the stricter rule.
+#
+# ONLY the 13 rows of the BUILD_SPEC 7 seed crosswalk appear here, every entry
+# checked 2026-10-22, to be re-verified before launch. Anything that looks
+# missing goes to OPEN_QUESTIONS.md, never into this file (BUILD_SPEC 0.4).
+#
+# A `clause` ending in `.*` matches by prefix; `*` alone means the whole policy.
+
+# --- 6.1 ------------------------------------------------------------------
+- clause: "6.1"
+  type: law
+  source: "EU AI Act, Article 5"
+  jurisdiction: EU
+  status: "In force"
+  checked: 2026-10-22
+  note: "Prohibited practices; legal text and its exclusions govern."
+
+# --- 6.2 ------------------------------------------------------------------
+- clause: "6.2"
+  type: law
+  source: >-
+    EU AI Act Art. 5, as amended by the 2026 AI omnibus (non-consensual
+    intimate imagery and CSAM)
+  jurisdiction: EU
+  status: "Agreed 2026; confirm final text"
+  checked: 2026-10-22
+
+# --- 6.3 (the crosswalk row is "standard + our_choice", so it is two entries)
+- clause: "6.3"
+  type: standard
+  source: "ISO/IEC 27001 access control"
+  jurisdiction: Global
+  checked: 2026-10-22
+
+- clause: "6.3"
+  type: our_choice
+  source: "Internal governance choice"
+  checked: 2026-10-22
+  note: "The absolute ban on entering secrets goes beyond the standard."
+
+# --- 6.6 ------------------------------------------------------------------
+- clause: "6.6"
+  type: law
+  source: "GDPR Art. 22"
+  jurisdiction: EU/UK
+  status: "In force"
+  checked: 2026-10-22
+
+# --- 7.3 ------------------------------------------------------------------
+- clause: "7.3"
+  type: law
+  source: "GDPR Arts. 5-6; India DPDP Act 2023 and Rules 2025"
+  jurisdiction: "EU; India"
+  status: "DPDP phased to May 2027"
+  checked: 2026-10-22
+
+# --- 8.1 and HR.1 ---------------------------------------------------------
+- clause: "8.1"
+  type: law
+  source: "EU AI Act Annex III (high-risk); Colorado SB 26-189"
+  jurisdiction: "EU; US-CO"
+  status: "Dec 2027; Jan 2027"
+  checked: 2026-10-22
+
+- clause: "HR.1"
+  type: law
+  source: "EU AI Act Annex III (high-risk); Colorado SB 26-189"
+  jurisdiction: "EU; US-CO"
+  status: "Dec 2027; Jan 2027"
+  checked: 2026-10-22
+
+# --- 10.1 -----------------------------------------------------------------
+- clause: "10.1"
+  type: law
+  source: "EU AI Act Art. 50"
+  jurisdiction: EU
+  status: "Applies 2026"
+  checked: 2026-10-22
+
+# --- 11.x and Part C ------------------------------------------------------
+- clause: "11.*"
+  type: standard
+  source: >-
+    OWASP Top 10 for Agentic Applications; Singapore Model AI Governance
+    Framework for Agentic AI
+  jurisdiction: "Global; SG"
+  checked: 2026-10-22
+
+- clause: "C.*"
+  type: standard
+  source: >-
+    OWASP Top 10 for Agentic Applications; Singapore Model AI Governance
+    Framework for Agentic AI
+  jurisdiction: "Global; SG"
+  checked: 2026-10-22
+  note: "Part C is interim, pending NIST agent control overlays."
+
+# --- 16.1 -----------------------------------------------------------------
+- clause: "16.1"
+  type: law
+  source: "EU AI Act Art. 4 (AI literacy)"
+  jurisdiction: EU
+  status: "Confirm after omnibus"
+  checked: 2026-10-22
+
+# --- FS.1 -----------------------------------------------------------------
+- clause: "FS.1"
+  type: standard
+  source: >-
+    US Revised Guidance on Model Risk Management (Apr 2026); MAS Guidelines on
+    AI Risk Management (Oct 2026)
+  jurisdiction: "US; SG"
+  status: Issued
+  checked: 2026-10-22
+
+# --- whole policy ---------------------------------------------------------
+- clause: "*"
+  type: standard
+  source: "ISO/IEC 42001 (AI policy); NIST AI RMF GOVERN"
+  jurisdiction: Global
+  checked: 2026-10-22
+
+# --- our own choices ------------------------------------------------------
+- clause: "15.1"
+  type: our_choice
+  source: "Internal governance choice"
+  checked: 2026-10-22
+  note: "The 24-hour reporting window is ours, not a legal deadline."
+
+- clause: "17.2"
+  type: our_choice
+  source: "Internal governance choice"
+  checked: 2026-10-22
+  note: "Graduated enforcement, and the no-blame rule for self-reports."
+
+- clause: "B.4"
+  type: our_choice
+  source: "Internal governance choice"
+  checked: 2026-10-22
+  note: "Service targets for triage and the two approval routes."
+
+- clause: "C.2"
+  type: our_choice
+  source: "Internal governance choice"
+  checked: 2026-10-22
+  note: "The caps themselves are a risk-appetite decision, not a legal threshold."
