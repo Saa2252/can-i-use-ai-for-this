@@ -6,13 +6,16 @@
 
 /* --- Streamlit chrome ------------------------------------------------- */
 
-/* Hide Streamlit's own toolbar, menu and footer — but NOT the header. With
-   st.navigation(position="top") the page nav is rendered inside the header,
-   so hiding the header leaves no way to move between pages at all. */
+/* Hide Streamlit's own menu, deploy button and footer — but NOT the header,
+   and NOT the toolbar. With st.navigation(position="top") the page nav is
+   rendered inside [data-testid="stToolbar"], which is itself inside the
+   header, so hiding either one leaves no way to move between pages at all.
+   Each chrome element is therefore named individually. */
 #MainMenu,
 footer,
-[data-testid="stToolbar"],
 [data-testid="stDecoration"],
+[data-testid="stMainMenu"],
+[data-testid="stAppDeployButton"],
 [data-testid="stStatusWidget"] {
   display: none !important;
 }
@@ -41,8 +44,9 @@ body,
 }
 
 /* Keep the nav compact: every pixel here comes out of the hero's budget for
-   reaching a verdict above the fold. */
-header[data-testid="stHeader"] [data-testid="stSidebarNavLink"] {
+   reaching a verdict above the fold. Top navigation renders stTopNavLink;
+   stSidebarNavLink is the sidebar's, and never matches here. */
+header[data-testid="stHeader"] [data-testid="stTopNavLink"] {
   padding-block: 0.3rem;
 }
 

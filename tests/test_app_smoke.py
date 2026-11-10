@@ -6,6 +6,7 @@ The app is driven through its real entry point, `app/main.py`, so the
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -302,3 +303,51 @@ def test_demo_mode_leaves_the_page_usable_afterwards():
 def test_without_demo_the_defaults_load():
     at = run_app()
     assert STATUS_STYLES[Status.ALLOWED].word in body(at)
+
+
+# --- Streamlit chrome -------------------------------------------------- #
+#
+# Regression guard. `st.navigation(position="top")` renders the page nav
+# inside [data-testid="stToolbar"], which is itself inside
+# header[data-testid="stHeader"]. Hiding either ancestor to tidy away
+# Streamlit's chrome also hides the nav, leaving the deployed app with no
+# way to reach five of its six pages — and it does so silently, because the
+# header still occupies its 60px and nothing errors. This has already been
+# shipped once. Each chrome element must therefore be named individually.
+
+CHROME_ANCESTORS_OF_THE_NAV = ('[data-testid="stToolbar"]', 'header[data-testid="stHeader"]')
+
+
+def _hide_rule_selectors() -> list[str]:
+    """The selectors of every rule in app.css whose body is `display: none`."""
+    from app.components.shell import CSS_FILE
+
+    css = CSS_FILE.read_text(encoding="utf-8")
+    # Strip comments so a selector mentioned in prose is not mistaken for code.
+    without_comments = re.sub(r"/\*.*?\*/", "", css, flags=re.DOTALL)
+
+    selectors: list[str] = []
+    for block in re.finditer(r"([^{}]+)\{([^{}]*)\}", without_comments):
+        head, declarations = block.group(1), block.group(2)
+        if re.search(r"display\s*:\s*none", declarations):
+            selectors.extend(part.strip() for part in head.split(",") if part.strip())
+    return selectors
+
+
+@pytest.mark.parametrize("ancestor", CHROME_ANCESTORS_OF_THE_NAV)
+def test_css_never_hides_an_ancestor_of_the_page_nav(ancestor: str) -> None:
+    hidden = _hide_rule_selectors()
+    assert ancestor not in hidden, (
+        f"app.css hides {ancestor} outright, which also hides the page nav "
+        f"rendered inside it. Name the individual chrome elements instead "
+        f"(stMainMenu, stAppDeployButton, stStatusWidget, stDecoration)."
+    )
+
+
+def test_the_nav_compactness_rule_targets_the_top_nav() -> None:
+    """The top nav renders stTopNavLink; stSidebarNavLink never matches."""
+    from app.components.shell import CSS_FILE
+
+    css = CSS_FILE.read_text(encoding="utf-8")
+    without_comments = re.sub(r"/\*.*?\*/", "", css, flags=re.DOTALL)
+    assert "stTopNavLink" in without_comments, "nothing styles the top nav links"
