@@ -8,6 +8,7 @@ import pytest
 from streamlit.testing.v1 import AppTest
 
 from app.components.scenario_text import describe_scenario
+from app.components.tiers import tier_a_conditions
 from app.styles.tokens import STATUS_STYLES
 from engine.models import Activity, DataClass, Inputs, Status, Tool
 from engine.policy_parser import load_policy
@@ -104,27 +105,49 @@ def test_matrix_cell_opens_the_rule_and_an_example():
 
 
 def test_matrix_explains_what_the_tiers_mean():
-    """The grid's headings are bare letters, so the page must define them.
-
-    The gloss is checked loosely, but the clause text underneath must be the
-    policy's own: B.1.2 is what separates Tier A from Tier B, and quoting it
-    verbatim is what stops the gloss drifting from the rule.
-    """
+    """The grid's headings are bare letters, so the page must define them."""
     at = open_page("matrix")
-    labels = {expander.label for expander in at.expander}
-    assert "What Tier A, B and C mean" in labels
+    assert "What Tier A, B and C mean" in {e.label for e in at.expander}
 
     page = body(at)
     for tier in ("Tier A", "Tier B", "Tier C"):
         assert tier in page
     assert "not assessed, including personal accounts" in page
 
+
+def test_matrix_lists_the_tier_a_conditions_in_the_policys_own_words():
+    """B.1.2's run-in list is shown as items, and each item is its wording.
+
+    This is what stops the panel drifting: the conditions are sliced out of
+    the clause at render time, so a reworded B.1.2 changes the page. If the
+    slice ever stops matching, it returns nothing and this fails rather than
+    the page quietly showing a tier with no conditions under it.
+    """
+    conditions = tier_a_conditions("v1_5")
+    assert len(conditions) == 9, f"expected B.1.2's nine conditions, got {conditions}"
+    assert "an enterprise contract" in conditions
+    assert "no training on our inputs" in conditions
+
+    page = body(open_page("matrix"))
+    for condition in conditions:
+        assert condition in page, f"B.1.2 condition missing from the page: {condition}"
+
     b12 = load_policy("v1_5").clauses["B.1.2"].text
-    assert "vetted but miss one or more of these" in b12.lower(), (
-        "B.1.2 no longer says what separates Tier B from Tier A; the gloss on "
-        "the Matrix page needs rewording to match."
+    for condition in conditions:
+        assert condition in b12, f"condition is not B.1.2's own wording: {condition}"
+
+
+def test_matrix_can_show_the_tier_clauses_in_full():
+    """The gloss is a summary, so the clause text has to be reachable."""
+    at = open_page("matrix")
+    assert load_policy("v1_5").clauses["B.1.2"].text not in body(at), (
+        "the full clause should start hidden, or the panel is a wall of text"
     )
-    assert b12 in page, "B.1.2 is glossed on the Matrix page but not quoted in full"
+
+    at.checkbox(key="cu_matrix_tier_clauses").check().run()
+    page = body(at)
+    for clause_id in ("B.1.1", "B.1.2", "B.1.3"):
+        assert load_policy("v1_5").clauses[clause_id].text in page
 
 
 def test_every_matrix_cell_has_an_example():
@@ -173,12 +196,31 @@ def test_switching_on_payments_shows_the_required_controls():
 
 def test_agent_builder_shows_both_irreversible_exceptions_and_their_conditions():
     at = open_page("agents")
+    # The heading is the expander's label, which `body` does not collect.
+    assert any("two exceptions" in e.label for e in at.expander)
     page = body(at)
-    assert "The two exceptions" in page
     assert "The payee is on the allowlist" in page
     assert "The recipient is on the allowlist" in page
     assert "within the rate limit" in page
     assert "The Committee has accepted that risk for the use case" in page
+
+
+def test_the_exceptions_panel_names_the_capability_that_is_switched_on():
+    """Generic by default, and named after the capability once it applies.
+
+    Always-open, this block was most of the page, and a reader met the
+    payment allowlist rules before switching payments on. AppTest does not
+    expose an expander's open state, so the heading is what is checked.
+    """
+    at = open_page("agents")
+    generic = next(e for e in at.expander if "exception" in e.label.lower())
+    assert "two exceptions" in generic.label
+
+    at.toggle(key="cu_cap_pay").set_value(True).run()
+    specific = next(e for e in at.expander if "payment" in e.label.lower())
+    assert "without a human each time" in specific.label
+    # and it still carries the conditions, not just a new heading
+    assert "The payment is within the per-action and daily caps" in body(at)
 
 
 def test_agent_builder_contrasts_in_allowance_with_out_of_allowance():
