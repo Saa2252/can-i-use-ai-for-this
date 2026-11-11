@@ -103,6 +103,30 @@ def test_matrix_cell_opens_the_rule_and_an_example():
     assert "6.7" in page
 
 
+def test_matrix_explains_what_the_tiers_mean():
+    """The grid's headings are bare letters, so the page must define them.
+
+    The gloss is checked loosely, but the clause text underneath must be the
+    policy's own: B.1.2 is what separates Tier A from Tier B, and quoting it
+    verbatim is what stops the gloss drifting from the rule.
+    """
+    at = open_page("matrix")
+    labels = {expander.label for expander in at.expander}
+    assert "What Tier A, B and C mean" in labels
+
+    page = body(at)
+    for tier in ("Tier A", "Tier B", "Tier C"):
+        assert tier in page
+    assert "not assessed, including personal accounts" in page
+
+    b12 = load_policy("v1_5").clauses["B.1.2"].text
+    assert "vetted but miss one or more of these" in b12.lower(), (
+        "B.1.2 no longer says what separates Tier B from Tier A; the gloss on "
+        "the Matrix page needs rewording to match."
+    )
+    assert b12 in page, "B.1.2 is glossed on the Matrix page but not quoted in full"
+
+
 def test_every_matrix_cell_has_an_example():
     """All 15 cells, so no cell can open onto an empty detail panel."""
     source = (Path(__file__).resolve().parent.parent / "app" / "pages" / "2_matrix.py").read_text(

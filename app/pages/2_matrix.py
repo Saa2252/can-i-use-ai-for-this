@@ -9,13 +9,14 @@ from __future__ import annotations
 
 import streamlit as st
 
+from app.components.clause_drawer import render_clause
 from app.components.footer import render_footer
 from app.components.shell import escape, inject_styles, page_header
 from app.components.verdict_card import render_verdict
 from app.styles.tokens import style_for
 from engine.models import Activity, DataClass, Inputs, Tool
 from engine.policy_parser import load_policy
-from engine.rules import evaluate
+from engine.rules import evaluate, resolve_clauses
 
 VERSION = "v1_5"
 SELECTED = "cu_matrix_cell"
@@ -27,6 +28,30 @@ TIER_HEADINGS = {Tool.TIER_A: "Tier A", Tool.TIER_B: "Tier B", Tool.TIER_C: "Tie
 #: A cell is about 80px wide on a phone, so the longest of the policy's own
 #: words is abbreviated on the button. The detail panel quotes it in full.
 SHORT_WORDS = {"Approved use case only": "Approval"}
+
+#: The grid's column headings are just "Tier A/B/C", which means nothing to a
+#: reader who has not read Part B. These are one-line glosses, not policy text;
+#: B.1.1 to B.1.3 are rendered verbatim underneath so the exact wording is one
+#: tap away. The Tier C line is the glossary's own sentence, and is the same
+#: sentence the Check page uses for its tool help.
+TIER_KEY_CLAUSES = ["B.1.1", "B.1.2", "B.1.3"]
+
+TIER_GLOSS: tuple[tuple[str, str], ...] = (
+    (
+        "Tier A",
+        "Assessed and approved, meeting every condition in B.1.2: an enterprise "
+        "contract, no training on our inputs, defined retention and deletion, "
+        "stated data location, SSO, audit logs, and the rest.",
+    ),
+    (
+        "Tier B",
+        "Vetted, but missing one or more of those Tier A conditions (B.1.2).",
+    ),
+    (
+        "Tier C",
+        "Anything not assessed, including personal accounts.",
+    ),
+)
 
 #: Illustrative examples, not policy text. They show what each cell looks like
 #: in practice; several are the golden scenarios of BUILD_SPEC 6.
@@ -107,12 +132,29 @@ def _render_selection() -> None:
     render_verdict(evaluate(cell_inputs(data_class, tool), VERSION), version=VERSION)
 
 
+def _render_tier_key() -> None:
+    """What the three column headings mean, with B.1 verbatim underneath."""
+    rows = "".join(
+        f"<tr><th>{escape(tier)}</th><td>{escape(gloss)}</td></tr>" for tier, gloss in TIER_GLOSS
+    )
+    with st.expander("What Tier A, B and C mean"):
+        st.html(
+            '<p class="cu-hint">A tool\'s tier is assigned by IT and Security, not '
+            "by the person using it. These one-line summaries are a gloss; the "
+            "clauses below are the policy's own words.</p>"
+            f'<table class="cu-fields">{rows}</table>'
+        )
+        for clause in resolve_clauses(TIER_KEY_CLAUSES, VERSION):
+            render_clause(clause)
+
+
 def main() -> None:
     inject_styles()
     page_header(
         "Which tools may hold which data",
         "The 7.1 grid. Every cell is worked out by the same rules the Check page uses.",
     )
+    _render_tier_key()
     _render_grid()
     _render_selection()
     render_footer(VERSION)
