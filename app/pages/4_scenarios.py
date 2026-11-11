@@ -22,7 +22,7 @@ from engine.models import Status
 from engine.rules import evaluate
 from engine.scenarios import QUIZ_LOCKED, Scenario, load_scenarios
 
-VERSION = "v1_5"
+VERSION = "v1_6"
 QUESTION_COUNT = 10
 
 ORDER_KEY = "cu_quiz_order"

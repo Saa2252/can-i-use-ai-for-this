@@ -19,7 +19,7 @@ from engine.models import Activity, DataClass, Inputs, Tool
 from engine.policy_parser import load_policy
 from engine.rules import evaluate, resolve_clauses
 
-VERSION = "v1_5"
+VERSION = "v1_6"
 SELECTED = "cu_matrix_cell"
 
 GRID_TIERS: tuple[Tool, ...] = (Tool.TIER_A, Tool.TIER_B, Tool.TIER_C)

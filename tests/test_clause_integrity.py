@@ -18,6 +18,9 @@ from engine.scenarios import load_scenarios
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
+#: The version the app serves. The crosswalk and the scenarios back this one.
+CURRENT = "v1_6"
+
 
 def _ruleset_clause_ids(version: str) -> set[str]:
     path = ENGINE_DIR / RULES_FILES[version]
@@ -38,30 +41,30 @@ def test_rule_clauses_exist_in_their_own_policy_version(version):
     assert not missing, f"{RULES_FILES[version]} cites clauses absent from {version}: {missing}"
 
 
-def test_basis_clauses_exist_in_v1_5():
-    policy = load_policy("v1_5")
+def test_basis_clauses_exist_in_the_current_policy():
+    policy = load_policy(CURRENT)
     missing = []
     for entry in load_basis():
         if entry.clause == WHOLE_POLICY or entry.clause.endswith(".*"):
             continue
         if entry.clause not in policy.clauses:
             missing.append(entry.clause)
-    assert not missing, f"basis.yaml cites clauses absent from v1.5: {sorted(set(missing))}"
+    assert not missing, f"basis.yaml cites clauses absent from {CURRENT}: {sorted(set(missing))}"
 
 
 def test_basis_patterns_match_at_least_one_clause():
     """A pattern that matches nothing is a silent dead entry."""
-    policy = load_policy("v1_5")
+    policy = load_policy(CURRENT)
     for entry in load_basis():
         if not entry.clause.endswith(".*"):
             continue
         prefix = entry.clause[:-2]
         matched = [cid for cid in policy.clauses if cid.split(".")[0] == prefix]
-        assert matched, f"basis.yaml pattern {entry.clause!r} matches no v1.5 clause"
+        assert matched, f"basis.yaml pattern {entry.clause!r} matches no {CURRENT} clause"
 
 
-def test_scenario_must_cite_clauses_exist_in_v1_5():
-    policy = load_policy("v1_5")
+def test_scenario_must_cite_clauses_exist_in_the_current_policy():
+    policy = load_policy(CURRENT)
     missing = sorted(
         {
             clause_id
@@ -70,17 +73,24 @@ def test_scenario_must_cite_clauses_exist_in_v1_5():
             if clause_id not in policy.clauses
         }
     )
-    assert not missing, f"scenarios.yaml cites clauses absent from v1.5: {missing}"
+    assert not missing, f"scenarios.yaml cites clauses absent from {CURRENT}: {missing}"
 
 
-def test_no_rule_cites_a_container_section():
-    """B.1 and C.4 are containers; their sub-clauses are what can be cited."""
-    policy = load_policy("v1_5")
-    for version in _available_rulesets():
-        for clause_id in _ruleset_clause_ids(version):
-            if clause_id in policy.clauses:
-                continue
-            pytest.fail(f"{version} cites {clause_id!r}, which is not a citable clause")
+@pytest.mark.parametrize("version", _available_rulesets())
+def test_no_rule_cites_a_container_section(version):
+    """B.1 and C.4 are containers; their sub-clauses are what can be cited.
+
+    Checked against the ruleset's OWN policy version. Checking every ruleset
+    against v1.5 worked only while v1.5 was the newest, and conflated two
+    different faults: citing a container, and citing a clause that a later
+    version introduced. v1.6's HR.6 is a real clause and was failing as a
+    container.
+    """
+    policy = load_policy(version)
+    for clause_id in _ruleset_clause_ids(version):
+        if clause_id in policy.clauses:
+            continue
+        pytest.fail(f"{version} cites {clause_id!r}, which is not a citable clause in {version}")
 
 
 #: Clause ids written as string literals in app code, e.g. "11.3" or "C.6.1".

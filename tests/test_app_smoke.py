@@ -14,6 +14,7 @@ from streamlit.testing.v1 import AppTest
 
 from app.styles.tokens import APPROVAL_LABELS, STATUS_STYLES
 from engine.models import ApprovalKind, Status
+from engine.policy_parser import load_policy
 from engine.rules import evaluate
 from engine.scenarios import load_scenarios, scenario
 
@@ -100,7 +101,10 @@ def test_footer_states_the_privacy_and_advice_disclaimers():
     page = body(at)
     assert "Nothing you enter is stored" in page
     assert "Model policy, not legal advice" in page
-    assert "Status checked 22 Oct 2026" in page
+    # Read from the policy's front matter rather than pinned here, so the
+    # assertion cannot pass while the footer shows a date the document dropped.
+    checked = load_policy("v1_6").front_matter["Regulatory status checked"]
+    assert f"Status checked {checked}" in page
 
 
 def test_example_chips_are_offered_for_scenarios_2_4_and_8():

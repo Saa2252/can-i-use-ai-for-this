@@ -29,7 +29,7 @@ from engine.models import (
 )
 from engine.rules import evaluate
 
-VERSION = "v1_5"
+VERSION = "v1_6"
 
 #: The capabilities BUILD_SPEC 9.3 asks for, in order.
 CAPABILITIES: tuple[tuple[str, AgentAction | None, str], ...] = (

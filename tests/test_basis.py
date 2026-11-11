@@ -19,7 +19,7 @@ from engine.rules import basis_for, load_basis, policy_basis
 #: row ("EU AI Act Art. 5"). Adding anything here needs a BUILD_SPEC change.
 ALLOWED_SOURCES = {
     "EU AI Act, Article 5",
-    "EU AI Act Art. 5, as amended by the 2026 AI omnibus "
+    "EU AI Act Art. 5, as amended by the Digital Omnibus on AI "
     "(non-consensual intimate imagery and CSAM)",
     "ISO/IEC 27001 access control",
     "GDPR Art. 22",
@@ -27,14 +27,18 @@ ALLOWED_SOURCES = {
     "EU AI Act Annex III (high-risk); Colorado SB 26-189",
     "EU AI Act Art. 50",
     "OWASP Top 10 for Agentic Applications; Singapore Model AI Governance Framework for Agentic AI",
-    "EU AI Act Art. 4 (AI literacy)",
+    "EU AI Act Art. 4 (AI literacy), as amended by the Digital Omnibus",
     "US Revised Guidance on Model Risk Management (Apr 2026); MAS Guidelines "
     "on AI Risk Management (Oct 2026)",
     "ISO/IEC 42001 (AI policy); NIST AI RMF GOVERN",
     "Internal governance choice",
 }
 
-CHECKED_ON = date(2026, 10, 22)
+#: The dates the crosswalk has been verified on. 2026-10-22 is the build-time
+#: seed BUILD_SPEC 7 set; 2026-11-11 is the re-verification against the adopted
+#: Digital Omnibus, Colorado SB 26-189 and the amended Article 4. A date not in
+#: this set means someone edited a `checked:` line without doing the reading.
+VERIFIED_ON = {date(2026, 10, 22), date(2026, 11, 11)}
 
 
 def test_every_source_is_in_the_seed_crosswalk():
@@ -46,10 +50,22 @@ def test_every_entry_has_a_checked_date():
     assert all(e.checked for e in load_basis())
 
 
-def test_every_entry_is_checked_on_the_date_build_spec_sets():
-    """BUILD_SPEC 7: mark every entry checked 2026-10-22."""
-    wrong = [(e.clause, e.checked) for e in load_basis() if e.checked != CHECKED_ON]
-    assert not wrong, f"entries not checked {CHECKED_ON}: {wrong}"
+def test_every_entry_carries_a_date_someone_verified_on():
+    """Supersedes the build-time rule that every entry read 2026-10-22.
+
+    That rule held while the crosswalk had never been re-checked. Pinning the
+    exact set is stricter than pinning one date: a `checked:` line cannot be
+    nudged forward to silence the stale-source tag without adding its date
+    here, which is a deliberate act.
+    """
+    stray = sorted((e.clause, str(e.checked)) for e in load_basis() if e.checked not in VERIFIED_ON)
+    assert not stray, f"dates nobody verified on: {stray}"
+
+
+def test_no_entry_claims_to_have_been_checked_in_the_future():
+    today = date.today()
+    ahead = sorted((e.clause, str(e.checked)) for e in load_basis() if e.checked > today)
+    assert not ahead, f"checked in the future: {ahead}"
 
 
 def test_the_crosswalk_is_covered():
@@ -88,9 +104,10 @@ def test_law_entries_that_need_a_recheck_warn_rather_than_fail():
     today = date.today()
     stale = [e for e in load_basis() if e.type is BasisType.LAW and e.is_stale(today)]
     if stale:
+        # Entries no longer share one date, so name each one's own.
+        overdue = sorted({f"{e.clause} (checked {e.checked})" for e in stale})
         warnings.warn(
-            "Law citations need re-checking (over 90 days since "
-            f"{CHECKED_ON}): {sorted({e.clause for e in stale})}",
+            f"Law citations over 90 days old, re-check before relying on them: {overdue}",
             stacklevel=1,
         )
     assert True

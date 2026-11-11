@@ -16,7 +16,7 @@ from engine.models import Clause
 from engine.policy_parser import load_policy
 from engine.rules import JURISDICTION_LENSES, applies_in, basis_for, load_basis
 
-VERSION = "v1_5"
+VERSION = "v1_6"
 SEARCH_KEY = "cu_policy_search"
 LENS_KEY = "cu_policy_lens"
 
@@ -150,7 +150,7 @@ def main() -> None:
     inject_styles()
     page_header(
         "The policy itself",
-        "AIG-POL-001 v1.5, in full. Search it, or see which laws apply where.",
+        "AIG-POL-001 v1.6, in full. Search it, or see which laws apply where.",
     )
 
     _render_front_matter()

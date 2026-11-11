@@ -32,6 +32,7 @@ ENGINE_DIR = Path(__file__).resolve().parent
 RULES_FILES: dict[str, str] = {
     "v1_0": "rules_v1_0.yaml",
     "v1_5": "rules_v1_5.yaml",
+    "v1_6": "rules_v1_6.yaml",
 }
 
 #: `clause: "*"` in basis.yaml backs the policy as a whole rather than any one

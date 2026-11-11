@@ -19,9 +19,40 @@ from engine.policy_parser import load_policy
 from engine.review import changed_verdicts, compare, compare_all
 from engine.scenarios import load_scenarios
 
-BASELINE, CURRENT = "v1_0", "v1_5"
-BASELINE_LABEL, CURRENT_LABEL = "v1.0", "v1.5"
+#: Two comparisons, and they answer different questions. v1.0 to v1.5 is where
+#: the answers themselves moved. v1.5 to v1.6 is where no answer moved at all
+#: and the obligations behind them grew, which is what closing a legal gap
+#: usually looks like: staff notice nothing, the organization owes more.
+COMPARISONS: dict[str, tuple[str, str]] = {
+    "v1.0 → v1.5": ("v1_0", "v1_5"),
+    "v1.5 → v1.6": ("v1_5", "v1_6"),
+}
+PAIR_KEY = "cu_review_pair"
+CURRENT = "v1_6"
 PICKED = "cu_review_scenario"
+
+
+def _version_label(version: str) -> str:
+    """ "v1_5" -> "v1.5". Not to be confused with _label, which formats a verdict."""
+    return version.replace("v1_", "v1.")
+
+
+def _pair() -> tuple[str, str]:
+    chosen = st.session_state.get(PAIR_KEY) or next(iter(COMPARISONS))
+    return COMPARISONS.get(chosen, next(iter(COMPARISONS.values())))
+
+
+def _render_pair_picker() -> tuple[str, str]:
+    st.segmented_control(
+        "Which comparison",
+        options=list(COMPARISONS),
+        key=PAIR_KEY,
+        default=next(iter(COMPARISONS)),
+        width="stretch",
+        label_visibility="collapsed",
+    )
+    return _pair()
+
 
 #: Four points the policy could have settled either way. Each is reconstructed
 #: from the policy's own text and change log, which is the only record this
@@ -113,19 +144,46 @@ DISPUTED: tuple[dict[str, str], ...] = (
 )
 
 
-def _render_changed_list() -> None:
-    changes = changed_verdicts()
-    total = len(compare_all())
+def _render_changed_list(before: str, after: str) -> None:
+    changes = changed_verdicts(before, after)
+    everything = compare_all(before, after)
+    total = len(everything)
+    before_label, after_label = _version_label(before), _version_label(after)
 
     st.markdown("## Scenarios whose verdict changed")
     st.html(
         f'<p class="cu-hint">{len(changes)} of {total} scenarios get a different '
-        f"answer under {CURRENT_LABEL} than they did under {BASELINE_LABEL}. "
+        f"answer under {after_label} than they did under {before_label}. "
         "Each version is encoded as a rulebook in which every rule cites the "
         "clause it comes from; the same scenarios run through both, and this "
         "list is whatever came out. The encoding of each version is a reading "
         "of its text, so the clause on every card is the thing to check.</p>"
     )
+
+    if not changes:
+        gained = [c for c in everything if c.added_clauses]
+        st.html(
+            f'<div class="cu-card cu-card--allowed">'
+            f'<p class="cu-status"><span class="cu-status__icon" aria-hidden="true">'
+            f"&#10003;</span><span>No answer changed</span></p>"
+            f'<p class="cu-reason">Every one of the {total} scenarios gets the same '
+            f"verdict under {escape(after_label)} as under {escape(before_label)}."
+            "</p></div>"
+            f'<p class="cu-hint">That is the finding, not a gap in the comparison. '
+            f"{len(gained)} scenarios now cite clauses that {escape(before_label)} "
+            "had no clause for, so what a person may do is unchanged while what the "
+            "organization owes has grown. Closing a legal gap usually looks like "
+            "this: nothing visible at the desk, more to evidence at an audit.</p>"
+        )
+        for change in gained:
+            st.html(
+                f'<div class="cu-change">'
+                f'<p class="cu-change__title">{escape(change.scenario.title)}</p>'
+                f'<p class="cu-route">adds {escape(", ".join(change.added_clauses))}</p>'
+                f"</div>"
+            )
+            render_clause_drawer(change.added_clauses, after, label="Read what was added")
+        return
 
     for change in changes:
         before, after = change.before, change.after
@@ -156,7 +214,8 @@ def _label(verdict) -> str:
     return f"{word} ({extra})" if extra else word
 
 
-def _render_scenario_toggle() -> None:
+def _render_scenario_toggle(before: str, after: str) -> None:
+    before_label, after_label = _version_label(before), _version_label(after)
     st.markdown("## Run a scenario through both versions")
     scenarios = load_scenarios()
     labels = {scenario.n: f"{scenario.n}. {scenario.title}" for scenario in scenarios}
@@ -168,21 +227,21 @@ def _render_scenario_toggle() -> None:
         key=PICKED,
     )
     scenario = next(s for s in scenarios if s.n == picked)
-    change = compare(scenario)
+    change = compare(scenario, before, after)
 
     st.html(f'<p class="cu-hint">{escape(describe_scenario(scenario))}</p>')
-    render_compact_verdict(change.before, heading=f"Under {BASELINE_LABEL}")
-    render_compact_verdict(change.after, heading=f"Under {CURRENT_LABEL}")
+    render_compact_verdict(change.before, heading=f"Under {before_label}")
+    render_compact_verdict(change.after, heading=f"Under {after_label}")
 
     if change.added_clauses:
         st.html(
-            f'<p class="cu-label">Clauses {CURRENT_LABEL} adds</p>'
+            f'<p class="cu-label">Clauses {after_label} adds</p>'
             f'<p class="cu-route">{escape(", ".join(change.added_clauses))}</p>'
         )
-        render_clause_drawer(change.added_clauses, CURRENT, label="Read what was added")
+        render_clause_drawer(change.added_clauses, after, label="Read what was added")
     if change.dropped_clauses:
         st.html(
-            f'<p class="cu-label">Clauses {BASELINE_LABEL} cited that {CURRENT_LABEL} '
+            f'<p class="cu-label">Clauses {before_label} cited that {after_label} '
             f"does not</p>"
             f'<p class="cu-route">{escape(", ".join(change.dropped_clauses))}</p>'
             '<p class="cu-meta">Clause numbers moved between versions, so a dropped '
@@ -239,11 +298,12 @@ def _render_disputed() -> None:
 def main() -> None:
     inject_styles()
     page_header(
-        "What changed from v1.0 to v1.5",
-        "Five revisions, four verdicts that flipped, and the arguments behind them.",
+        "What changed between versions",
+        "Six revisions, the verdicts that flipped, and the arguments behind them.",
     )
-    _render_changed_list()
-    _render_scenario_toggle()
+    before, after = _render_pair_picker()
+    _render_changed_list(before, after)
+    _render_scenario_toggle(before, after)
     _render_changelogs()
     _render_disputed()
     render_footer(CURRENT)

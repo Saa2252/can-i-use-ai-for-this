@@ -22,7 +22,7 @@ from app.components.verdict_card import render_verdict
 from engine.rules import evaluate
 from engine.scenarios import scenario
 
-VERSION = "v1_5"
+VERSION = "v1_6"
 
 #: BUILD_SPEC 9.1: a "Try an example" chip row for scenarios 2, 4 and 8.
 #: Labels are kept short so more than one chip fits a 375px row.

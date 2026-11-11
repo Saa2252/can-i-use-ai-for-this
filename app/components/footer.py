@@ -11,24 +11,31 @@ import streamlit as st
 from app.components.shell import escape
 from engine.policy_parser import load_policy
 
-#: BUILD_SPEC 7: every basis entry is checked on this date.
-STATUS_CHECKED = "22 Oct 2026"
-
-#: From the policy's own front matter.
+#: Fallbacks only. These used to be the source of truth and had to be edited by
+#: hand whenever the policy was revised, which is exactly how a footer ends up
+#: claiming a date the document no longer carries. They are now read from the
+#: policy's own front matter, and these values are used only if a future policy
+#: file drops those rows.
+STATUS_CHECKED = "11 Nov 2026"
 POLICY_ID = "AIG-POL-001"
-VERSION_DATE = "9 Nov 2026"
+VERSION_DATE = "12 Nov 2026"
 
 
-def render_footer(version: str = "v1_5") -> None:
+def render_footer(version: str = "v1_6") -> None:
     policy = load_policy(version)
     label = policy.version.replace("v1_", "1.")
+
+    fields = policy.front_matter
+    policy_id = fields.get("Policy ID") or POLICY_ID
+    version_date = fields.get("Version date") or VERSION_DATE
+    status_checked = fields.get("Regulatory status checked") or STATUS_CHECKED
 
     st.html(
         '<div class="cu-footer">'
         '<span class="cu-footer__row">'
         "<strong>Model policy, not legal advice.</strong> "
         "Legal references are for context only. "
-        f"Status checked {escape(STATUS_CHECKED)}."
+        f"Status checked {escape(status_checked)}."
         "</span>"
         '<span class="cu-footer__row">'
         "<strong>Nothing you enter is stored.</strong> "
@@ -37,8 +44,8 @@ def render_footer(version: str = "v1_5") -> None:
         "rules you can read."
         "</span>"
         '<span class="cu-footer__row">'
-        f"{escape(POLICY_ID)} · version {escape(label)} · "
-        f"policy dated {escape(VERSION_DATE)}"
+        f"{escape(policy_id)} · version {escape(label)} · "
+        f"policy dated {escape(version_date)}"
         "</span>"
         "</div>"
     )

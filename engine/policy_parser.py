@@ -31,6 +31,7 @@ VERSION_FILES: dict[str, str] = {
     "v1_0": "AI_Acceptable_Use_Policy_v1.0.md",
     "v1_4": "AI_Acceptable_Use_Policy_v1.4.md",
     "v1_5": "AI_Acceptable_Use_Policy_v1.5.md",
+    "v1_6": "AI_Acceptable_Use_Policy_v1.6.md",
 }
 
 # A citable clause id. Deliberately strict: it has to reject bold prose such as

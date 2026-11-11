@@ -1,0 +1,659 @@
+# Rules for AI Acceptable Use Policy AIG-POL-001 v1.6
+#
+# Generated from rules_v1_5.yaml. v1.6 closes procedural gaps rather than
+# changing what anyone may do, so NO VERDICT CHANGES between v1.5 and v1.6.
+# What changes is what a verdict obliges the organization to do: three rules
+# gain clauses and requirements that v1.5 had no clause for. The Changes page
+# shows that as citations moving while statuses hold, which is the point.
+#
+# Every rule cites clause ids that must exist in the parsed v1.6 policy
+# (enforced by tests/test_clause_integrity.py). `reason` is plain English
+# written for the visitor; it never stands in for clause text, which the card
+# loads from the policy file itself.
+#
+# Evaluation: every rule is tested, every fired rule contributes its clauses,
+# reasons and requirements, and the status is the most severe that fired.
+# PROHIBITED > NOT_PERMITTED > NEEDS_APPROVAL > ALLOWED.
+
+# ===========================================================================
+# Classification notes. These fire at the ALLOWED floor: they add the clause
+# that explains how the data was classified without changing the status.
+# ===========================================================================
+
+- id: classification_whole_interaction
+  when: {}
+  then:
+    status: ALLOWED
+    reason: >-
+      Classify the whole interaction, not just the attachment: what you type,
+      anything the tool can see, and any file you attach. The highest class
+      present decides which tool you may use.
+    clauses: ["7.2"]
+
+- id: note_ordinary_personal_data
+  when: { data_kind: ordinary_personal }
+  then:
+    status: ALLOWED
+    reason: >-
+      A colleague's name or work email in a document does not make the data
+      sensitive. It is Internal or Confidential, not Restricted.
+    clauses: ["7.5"]
+
+- id: note_sensitive_personal_data
+  when: { data_kind: sensitive_personal }
+  then:
+    status: ALLOWED
+    reason: Sensitive personal data is Restricted, which narrows you to an approved use case.
+    clauses: ["7.4"]
+
+- id: note_hr_health_record
+  when: { data_kind: hr_health_record }
+  then:
+    status: ALLOWED
+    reason: >-
+      An HR record containing health data, such as a sick-leave note or a
+      medical accommodation, stays Restricted even though ordinary HR files are
+      only Confidential.
+    clauses: ["7.4", "7.5"]
+
+- id: note_client_information
+  when: { data_kind: client_info }
+  then:
+    status: ALLOWED
+    reason: >-
+      For AI use, a client's identity and any non-public information about them
+      are Confidential, even if nothing else in the document is.
+    clauses: ["B.2.3", "7.6"]
+
+- id: personal_data_minimisation
+  when:
+    data_kind: [ordinary_personal, sensitive_personal, hr_health_record]
+  then:
+    status: ALLOWED
+    reason: Personal data needs a lawful basis, a compatible purpose, and the minimum amount.
+    clauses: ["7.3", "7.7"]
+    requirements:
+      - "A lawful basis for the personal data, and a compatible purpose"
+      - "The minimum data needed; prefer de-identified data"
+      - "Access, correction and deletion requests followed into tool histories, agent
+         memory, meeting transcripts, derived indexes and logs"
+
+# ===========================================================================
+# Data rules: the 7.1 table, always applied
+# ===========================================================================
+
+- id: data_secrets_never
+  when: { data_class: Secrets }
+  then:
+    status: PROHIBITED
+    reason: >-
+      Passwords, API keys, tokens and private keys never go into any AI tool,
+      in any tier. There is no approval route and no exception.
+    clauses: ["6.3", "7.1"]
+    requirements:
+      - "If a secret has already been exposed, report it within 24 hours and rotate it"
+
+- id: data_tier_c_non_public
+  when:
+    all_of:
+      - { effective_tier: C }
+      - { data_class: [Internal, Confidential, Restricted] }
+  then:
+    status: PROHIBITED
+    reason: >-
+      An unapproved or personal AI account is Tier C, and nothing other than
+      public information may go into it.
+    clauses: ["6.7", "7.1"]
+
+- id: data_tier_b_above_internal
+  when:
+    all_of:
+      - { effective_tier: B }
+      - { data_class: [Confidential, Restricted] }
+  then:
+    status: NOT_PERMITTED
+    reason: A Tier B tool is vetted but misses some Tier A controls, so it stops at Internal.
+    clauses: ["7.1"]
+    try_instead: >-
+      Use an approved Tier A tool for this data, or have IT and Security assess
+      the tool against the Tier A criteria in B.1.2.
+
+- id: data_restricted_in_tier_a
+  when:
+    all_of:
+      - { effective_tier: A }
+      - { data_class: Restricted }
+  then:
+    status: NEEDS_APPROVAL
+    approval_kind: one_time_use_case
+    reason: >-
+      Restricted data is allowed in a Tier A tool only for a registered use
+      case that has been approved for it.
+    clauses: ["8.6", "7.1"]
+    requirements:
+      - "A registered use case and an impact assessment sized by the B.3 rubric"
+      - "A named human reviewer, and logging"
+      - "AI Governance Committee approval of Tier A status for a tool holding Restricted data"
+
+- id: data_personal_selfhosted_non_public
+  when:
+    all_of:
+      - { effective_tier: personal_selfhosted }
+      - { data_class: [Internal, Confidential, Restricted, Secrets] }
+  then:
+    status: NOT_PERMITTED
+    reason: >-
+      A model on a personal or unmanaged device may be used with public data
+      only. Organizational servers or the organization's own cloud tenancy are
+      the only hosts that can reach Tier A.
+    clauses: ["2.3", "B.1.3"]
+    try_instead: >-
+      Run the model on organizational servers or the organization's cloud
+      tenancy, or use an approved Tier A tool. On a managed company laptop the
+      same model is Tier B at most, so it still stops at Internal data.
+
+- id: data_public_any_tier
+  when: { data_class: Public }
+  then:
+    status: ALLOWED
+    reason: Public information may go into any tier, including a personal account.
+    clauses: ["7.1"]
+
+- id: data_internal_tier_a_or_b
+  when:
+    all_of:
+      - { data_class: Internal }
+      - { effective_tier: [A, B] }
+  then:
+    status: ALLOWED
+    reason: Internal data is allowed in Tier A and Tier B tools.
+    clauses: ["7.1"]
+
+- id: data_confidential_tier_a
+  when:
+    all_of:
+      - { data_class: Confidential }
+      - { effective_tier: A }
+  then:
+    status: ALLOWED
+    reason: Confidential data is allowed in a Tier A tool.
+    clauses: ["7.1"]
+
+- id: client_data_training_without_permission
+  when:
+    all_of:
+      - { training_or_finetuning: true }
+      - { client_contract_allows: false }
+  then:
+    status: PROHIBITED
+    reason: >-
+      Client data is not uploaded to an AI service, or used to train or
+      fine-tune a model, where the client contract does not allow it. If the
+      contract is silent, the answer is no.
+    clauses: ["6.8", "7.6"]
+
+# ===========================================================================
+# Self-hosted and open-weight models
+# ===========================================================================
+
+- id: selfhosted_on_org_infrastructure
+  when:
+    all_of:
+      - { tool: self_hosted }
+      - { host: org_cloud }
+  then:
+    status: ALLOWED
+    reason: >-
+      A self-hosted model on organizational servers or the organization's cloud
+      tenancy can reach Tier A, but only if every B.1.3 criterion is met.
+      Self-hosting removes vendor risk and adds supply-chain, patching and
+      safety-tuning risk; it is not automatically safer.
+    clauses: ["B.1.3"]
+    requirements:
+      - "Model from an approved source, integrity checked by hash or signature"
+      - "A licence permitting the intended commercial use"
+      - "No outbound data or telemetry from the model environment"
+      - "Access control tied to SSO, and logging of use"
+      - "A named owner responsible for patching and updates"
+      - "An evaluation for fitness, basic safety and prompt injection"
+
+- id: selfhosted_on_managed_laptop
+  when:
+    all_of:
+      - { tool: self_hosted }
+      - { host: managed_laptop }
+  then:
+    status: ALLOWED
+    reason: A model on a managed company laptop is Tier B at most, so it stops at Internal data.
+    clauses: ["B.1.3"]
+
+# ===========================================================================
+# Activities
+# ===========================================================================
+
+- id: activity_drafting
+  when: { activity: drafting }
+  then:
+    status: ALLOWED
+    reason: >-
+      Drafting, summarizing, translating, research and analysis are permitted
+      in approved tools within the data rules. You check the output.
+    clauses: ["8.10", "9.2"]
+    requirements:
+      - "Verify facts, figures, citations and legal, financial, medical or technical claims
+         against a reliable source before they go into anything external or any decision"
+
+- id: activity_coding
+  when: { activity: coding }
+  then:
+    status: ALLOWED
+    reason: >-
+      Coding help is permitted in approved tools. AI-written code gets the same
+      review, testing, security scanning and licence checks as any other code.
+    clauses: ["8.10", "9.3", "B.5.1"]
+    requirements:
+      - "The same review, testing, security scanning and licence checks as any other code"
+      - "The assistant configured to exclude secret files from its context"
+
+- id: activity_decision_about_person
+  when: { activity: decision_about_person }
+  then:
+    status: NEEDS_APPROVAL
+    approval_kind: one_time_use_case
+    reason: >-
+      A decision with a legal or similarly significant effect on a person is a
+      use that needs approval before it starts.
+    clauses: ["8.1", "8.12", "9.4", "10.3", "10.5"]
+    requirements:
+      - "A registered use case, an impact assessment sized by the B.3 rubric, and logging"
+      - "The assessment produced in the form the law names where it names one, such as a
+         fundamental rights impact assessment; it may cross-refer to the data protection
+         impact assessment rather than repeat it"
+      - "A reviewer with the authority and competence to overrule the AI, who sees the
+         main factors behind its output and records the decision"
+      - "The person told before AI materially influences the decision, and given a
+         plain-language explanation after an adverse outcome"
+      - "Workers' representatives informed before it is put into use at work, and consulted
+         where local law gives them that right"
+
+- id: decision_without_human_review
+  when:
+    all_of:
+      - { activity: decision_about_person }
+      - { human_review: false }
+  then:
+    status: PROHIBITED
+    reason: >-
+      A consequential decision about a person may never rest on AI output
+      alone. Meaningful human review is not optional.
+    clauses: ["6.6"]
+
+- id: decision_hiring_context
+  when:
+    all_of:
+      - { activity: decision_about_person }
+      - { hiring: true }
+  then:
+    status: NEEDS_APPROVAL
+    approval_kind: one_time_use_case
+    reason: >-
+      AI in recruiting, promotion, performance, scheduling or termination needs
+      anti-bias testing before and after deployment.
+    clauses: ["HR.1", "HR.6"]
+    requirements:
+      - "Anti-bias testing before and after deployment"
+      - "Candidates and employees notified before AI is used"
+      - "Workers' representatives informed before deployment; where a works council or
+         equivalent must agree, its agreement recorded with the approval"
+      - "Decision records kept for at least 4 years, or longer where local law requires"
+
+- id: activity_chatbot
+  when: { activity: chatbot }
+  then:
+    status: NEEDS_APPROVAL
+    approval_kind: one_time_use_case
+    reason: Customer-facing and public-facing AI needs approval, and has to say it is AI.
+    clauses: ["8.2", "10.1"]
+    requirements:
+      - "A registered use case, a named human reviewer, and logging"
+      - "The chatbot discloses that it is AI, and offers a person on request"
+
+- id: activity_publishing
+  when: { activity: publishing }
+  then:
+    status: NEEDS_APPROVAL
+    approval_kind: one_time_use_case
+    reason: >-
+      Publishing AI-generated content externally under the organization's name
+      needs approval, and the disclosure rules in 10.2 decide whether it
+      carries an AI label.
+    clauses: ["8.3", "10.2", "12.2"]
+    requirements:
+      - "A named person who reviews it and takes editorial responsibility, or an
+         AI-generated label"
+      - "Checked for close copies of protected material, third-party trademarks, and
+         open-source code under incompatible licences"
+
+- id: activity_synthetic_media
+  when: { activity: synthetic_media }
+  then:
+    status: NEEDS_APPROVAL
+    approval_kind: one_time_use_case
+    reason: Synthetic images, audio or video of a real, identifiable person need approval.
+    clauses: ["8.4"]
+    requirements:
+      - "Written consent from the person"
+      - "An AI label on the result"
+
+- id: synthetic_media_intimate
+  when:
+    all_of:
+      - { activity: synthetic_media }
+      - { sexual_or_intimate: true }
+  then:
+    status: PROHIBITED
+    reason: >-
+      Creating or altering sexual or intimate imagery of a real person is
+      prohibited outright. No consent, approval or exception makes it available.
+    clauses: ["6.2"]
+
+- id: activity_monitoring_employees
+  when: { activity: monitoring_employees }
+  then:
+    status: NEEDS_APPROVAL
+    approval_kind: one_time_use_case
+    reason: Using AI to monitor or evaluate employees needs approval before it starts.
+    clauses: ["8.7"]
+    requirements:
+      - "A registered use case, a named human reviewer, and logging"
+      - "Staff told what is monitored, in line with privacy and employment law"
+
+- id: activity_emotion_recognition
+  when: { activity: emotion_recognition }
+  then:
+    status: PROHIBITED
+    reason: >-
+      Emotion recognition in the workplace or in education is a prohibited
+      practice, wherever in the world it takes place.
+    clauses: ["6.1"]
+
+- id: activity_fatigue_detection
+  when: { activity: fatigue_detection }
+  then:
+    status: NEEDS_APPROVAL
+    approval_kind: one_time_use_case
+    reason: >-
+      Detecting a physical state such as fatigue, for safety, is a use that
+      needs approval rather than a prohibited practice. It is both employee
+      monitoring and a safety-critical use, and it relies on a stated exclusion
+      in the law, so the legal text and its exclusions govern.
+    clauses: ["8.7", "8.8"]
+    requirements:
+      - "A full impact assessment: this is High risk under the B.3 rubric"
+      - "Legal and Privacy confirm the use falls inside a stated exclusion"
+      - "Staff told what is monitored"
+
+- id: activity_safety_critical
+  when: { activity: safety_critical }
+  then:
+    status: NEEDS_APPROVAL
+    approval_kind: one_time_use_case
+    reason: >-
+      AI in safety-critical, clinical or physical operations needs approval, and
+      the sector rules in Part D apply as well.
+    clauses: ["8.8"]
+    requirements:
+      - "A full impact assessment, with testing for bias and failure modes"
+      - "The relevant Part D sector annex applied on top of Parts A to C"
+
+- id: activity_connecting_systems
+  when: { activity: connecting_systems }
+  then:
+    status: NEEDS_APPROVAL
+    approval_kind: one_time_use_case
+    reason: >-
+      Connecting an AI tool to a new internal system or data source through a
+      plugin, connector, MCP server or API is a new use case.
+    clauses: ["8.9", "11.9"]
+    requirements:
+      - "A registered use case before the connection is made"
+      - "Everything the tool can read through the connector counted in the classification"
+
+- id: notetaker_ordinary_meeting
+  when:
+    all_of:
+      - { activity: notetaker }
+      - { meeting_type: ordinary }
+  then:
+    status: ALLOWED
+    reason: >-
+      An approved notetaker is allowed in an ordinary meeting, as long as
+      everyone is told at the start.
+    clauses: ["8.11", "B.6.1", "B.6.2", "B.6.4"]
+    requirements:
+      - "An approved notetaker tool; personal notetaker bots are Tier C"
+      - "The host announces recording and AI notes at the start, with notice in the
+         invite for external participants"
+      - "Where local law requires every participant's consent, the host gets it first,
+         and switches the notetaker off if anyone objects"
+      - "The host reviews the summary before it is shared"
+
+- id: notetaker_excluded_meeting
+  when:
+    all_of:
+      - { activity: notetaker }
+      - { meeting_type: [legal_counsel, hr_casework, board_exec, undisclosed_deal] }
+  then:
+    status: NEEDS_APPROVAL
+    approval_kind: one_time_use_case
+    reason: >-
+      Notetakers are kept out of meetings with legal counsel, HR disciplinary,
+      grievance or medical discussions, board executive sessions and meetings
+      about undisclosed transactions, unless the Committee approves that
+      specific case.
+    clauses: ["B.6.3"]
+    requirements:
+      - "AI Governance Committee approval of this specific case"
+
+# ===========================================================================
+# AI agents (11.x and C.x, as amended in v1.5)
+# ===========================================================================
+
+- id: agent_registration_and_controls
+  when: { activity: agent }
+  then:
+    status: ALLOWED
+    reason: >-
+      Every agent is registered with a named human owner, runs on its own
+      identity with least privilege, and is logged, monitored and killable.
+    clauses: ["11.1", "11.2", "11.5", "11.6", "11.8", "C.1.1", "C.1.2"]
+    requirements:
+      - "Registered in the AI register with a named human owner"
+      - "Its own service identity and least privilege; never a person's full credentials"
+      - "Credentials only from the approved secrets manager, as short-lived scoped tokens"
+      - "All actions logged in a form audit can review"
+      - "A tested kill switch and a way to roll back its actions"
+      - "Staged rollout, with users told what it can do and who to contact"
+
+- id: agent_untrusted_content
+  when: { activity: agent }
+  then:
+    status: ALLOWED
+    reason: >-
+      Anything the agent reads is untrusted data, never an instruction. An
+      agent that reads email, the web or shared documents is tested for prompt
+      injection before release and after each significant change.
+    clauses: ["11.4", "C.3"]
+    requirements:
+      - "Prompt-injection testing before release and after each significant change"
+
+- id: agent_memory
+  when: { activity: agent }
+  then:
+    status: ALLOWED
+    reason: >-
+      Memory that persists between tasks is a data store under Section 7. It
+      never holds Secrets, and holds Restricted data only where the approved
+      use case allows it.
+    clauses: ["11.7", "C.4.1"]
+    requirements:
+      - "The owner can inspect and purge the memory"
+      - "A retention period set at approval, after which memory is deleted automatically"
+
+- id: agent_read_only
+  when:
+    all_of:
+      - { activity: agent }
+      - { agent_action: read }
+  then:
+    status: ALLOWED
+    reason: Agents are read-only by default, which is the setting that needs no action approval.
+    clauses: ["11.3"]
+
+- id: agent_write_rights
+  when:
+    all_of:
+      - { activity: agent }
+      - { agent_action: [write, pay, delete, message_external, production_change] }
+  then:
+    status: NEEDS_APPROVAL
+    approval_kind: one_time_use_case
+    reason: >-
+      An agent with rights to write, send, pay, delete or communicate
+      externally is a use that needs approval before it is switched on.
+    clauses: ["8.5"]
+    requirements:
+      - "A registered use case, an impact assessment, a named human reviewer, and logging"
+      - "Limits recorded in the agent's register entry: spend, rate, recipients,
+         data scope and tools"
+
+- id: agent_payment_in_cap_to_allowlisted_payee
+  when:
+    all_of:
+      - { activity: agent }
+      - { agent_action: pay }
+      - { payee_on_allowlist: true }
+      - { within_caps: true }
+  then:
+    status: NEEDS_APPROVAL
+    approval_kind: one_time_use_case
+    reason: >-
+      An in-cap payment to an allowlisted payee is one of only two irreversible
+      actions an agent may take without approval for each action. It still
+      needs the use case approved once, with the Committee accepting that risk.
+    clauses: ["11.3", "C.2"]
+    requirements:
+      - "Committee risk acceptance"
+      - "caps / allowlist set in C.2"
+
+- id: agent_payment_outside_allowance
+  when:
+    all_of:
+      - { activity: agent }
+      - { agent_action: pay }
+      - any_of:
+          - { payee_on_allowlist: false }
+          - { within_caps: false }
+  then:
+    status: NEEDS_APPROVAL
+    approval_kind: per_action
+    reason: >-
+      A payment above the cap, or to a payee who is not on the allowlist, falls
+      outside the exception and needs a human to approve that payment.
+    clauses: ["11.3", "C.2"]
+    requirements:
+      - "Human approval for this payment, before it is made"
+
+- id: agent_message_to_allowlisted_recipient
+  when:
+    all_of:
+      - { activity: agent }
+      - { agent_action: message_external }
+      - { recipient_on_allowlist: true }
+      - { within_caps: true }
+  then:
+    status: NEEDS_APPROVAL
+    approval_kind: one_time_use_case
+    reason: >-
+      A message to an allowlisted recipient within the rate limit is the second
+      of the two irreversible actions an agent may take without approval for
+      each action. The use case is approved once, with the Committee accepting
+      that risk.
+    clauses: ["11.3", "C.2"]
+    requirements:
+      - "Committee risk acceptance"
+      - "caps / allowlist set in C.2"
+
+- id: agent_message_outside_allowance
+  when:
+    all_of:
+      - { activity: agent }
+      - { agent_action: message_external }
+      - any_of:
+          - { recipient_on_allowlist: false }
+          - { within_caps: false }
+  then:
+    status: NEEDS_APPROVAL
+    approval_kind: per_action
+    reason: >-
+      A message to anyone not on the recipient allowlist, or beyond the rate
+      limit, needs a human to approve that message.
+    clauses: ["11.3", "C.2"]
+    requirements:
+      - "Human approval for this message, before it is sent"
+
+- id: agent_adds_payee
+  when:
+    all_of:
+      - { activity: agent }
+      - { agent_action: add_payee }
+  then:
+    status: NOT_PERMITTED
+    reason: >-
+      Adding a payee to the allowlist is never done by an agent. The allowlist
+      is the control; an agent that can extend it has no limit at all.
+    clauses: ["C.2"]
+    try_instead: a human adds it, and it is logged
+
+- id: agent_adds_recipient
+  when:
+    all_of:
+      - { activity: agent }
+      - { agent_action: add_recipient }
+  then:
+    status: NOT_PERMITTED
+    reason: >-
+      Adding a recipient to the allowlist is never done by an agent, on the
+      same footing as adding a payee.
+    clauses: ["C.2"]
+    try_instead: a human adds it, and it is logged
+
+- id: agent_deletion
+  when:
+    all_of:
+      - { activity: agent }
+      - { agent_action: delete }
+  then:
+    status: NEEDS_APPROVAL
+    approval_kind: per_action
+    reason: >-
+      Deletion is irreversible without a tested backup, and it is not one of
+      the two exceptions. It needs a human for each action, always.
+    clauses: ["11.3", "C.2"]
+    requirements:
+      - "Human approval for each deletion"
+
+- id: agent_production_change
+  when:
+    all_of:
+      - { activity: agent }
+      - { agent_action: production_change }
+  then:
+    status: NEEDS_APPROVAL
+    approval_kind: per_action
+    reason: >-
+      A production change without a tested rollback is irreversible, and it is
+      not one of the two exceptions. It needs a human for each action, always.
+    clauses: ["11.3", "C.2"]
+    requirements:
+      - "Human approval for each production change"
