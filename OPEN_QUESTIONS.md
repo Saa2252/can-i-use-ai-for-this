@@ -254,3 +254,79 @@ row mentions it. Its resolution comes from BUILD_SPEC 5's own ruling plus the
 reconstruction with what was really argued. Otherwise, confirm that the "two
 readings, and where it is recorded" framing is what you want, or tell me to
 assert the overruled/accepted framing as the spec words it.
+
+---
+
+## Q8 — The crosswalk was re-verified, and three entries had moved
+
+**Found:** 2026-11-11, re-checking the §7 crosswalk before launch.
+
+The seed crosswalk was marked checked 2026-10-22 with three entries carrying
+provisional statuses. Re-reading the sources resolved all three.
+
+| Entry | Was | Now |
+|---|---|---|
+| 6.2 | "Agreed 2026; confirm final text" | In force. The Digital Omnibus on AI was adopted (Parliament 16 Jun 2026, Council 29 Jun 2026) and entered into force in late July 2026. |
+| 16.1 | "Confirm after omnibus" | In force, **weakened**. Article 4 survived, but the duty to *ensure* a sufficient level of AI literacy became a duty to take measures that *support* it, with no level guaranteed for any individual. |
+| 8.1, HR.1 | "Dec 2027; Jan 2027" | Dates correct. Annex III standalone high-risk is fixed at 2 Dec 2027 and Annex I at 2 Aug 2028. Colorado SB 26-189 applies from 1 Jan 2027, but a federal court stayed enforcement in April 2026 and the Attorney General's rulemaking is unfinished, so the date is less settled than the status implied. |
+
+### Two consequences worth recording
+
+**16.1 is now partly our own choice.** The policy requires training before
+access, refreshed yearly. The amended Article 4 does not require that. The
+clause is therefore stricter than the law, which is a legitimate position but
+is ours, not the law's — so 16.1 now carries both a `law` and an `our_choice`
+entry. This is exactly the distinction the backing layer exists to draw, and
+it only appeared because the law moved.
+
+**6.1's deferral design paid off.** The omnibus added prohibitions to Article
+5. Because 6.1 defers to the Article 5 text and its exclusions rather than
+listing the practices, the policy carried the new prohibitions without being
+amended. A policy that had listed them would now be wrong. This was a drafting
+choice made before the change and validated by it.
+
+### How this was settled
+
+The date test used to assert every entry read 2026-10-22, which was a
+build-time instruction, not a fact about the world. It now pins the *set* of
+dates anyone has actually verified on, which is stricter: a `checked:` line
+cannot be nudged forward to silence the stale-source tag without adding its
+date to that set deliberately. A second test rejects any date in the future.
+
+---
+
+## Q9 — Reading v1.5 against the Omnibus found four procedural gaps
+
+**Found:** 2026-11-11, reviewing the policy as a specialist would.
+
+The gaps were not errors of substance. v1.5 did the thinking in every case;
+what it lacked was the name of the legal procedure that carries the thinking,
+and in one case it stopped following personal data before the places AI puts
+it.
+
+| Gap | What v1.5 had | What was missing | Closed by |
+|---|---|---|---|
+| Provider role | 13.4, "the organization remains accountable for outcomes produced by vendor AI" | Accountability is not legal role. Branding, substantially modifying, or repurposing a high-risk system makes us its *provider*, and a contract cannot move that back. | 2.6, and a Section 4 definition |
+| Workers' representatives | 10.3 and HR.2, telling the individuals affected; 17.1, telling staff what is monitored | Informing workers' *representatives* before deployment is owed to a different party, and in some jurisdictions they can block it | 10.5, HR.6 |
+| Named assessments | B.3's rubric, which sizes an assessment well | Where the law names a specific assessment, an excellent assessment of your own does not satisfy it | 8.12 |
+| Rights over personal data | 7.3 lawful basis and minimisation; C.4.2 memory purge | Nothing followed an access or deletion request into tool histories, agent memory, transcripts, derived indexes and logs | 7.7 |
+
+Smaller additions in the same pass: 9.7 accessibility, 12.4 model provenance,
+13.2 transfer mechanism, 13.6 energy and water cost, 15.4 legal reporting
+clocks, 15.5 a route for raising a concern about an approved use case.
+
+### Why this is recorded rather than quietly fixed
+
+The project's rule is that gaps are written down, not papered over. These were
+found by reading, not by running the engine, so nothing in the app would have
+caught them — which is itself the finding. An app that checks a policy against
+itself cannot tell you the policy is missing a procedure that exists only in
+law. The Limits page now says this on the record.
+
+### The result that surprised me
+
+Running all 21 scenarios through v1.5 and v1.6 changes **no verdict at all**,
+and adds clauses to six. Closing a legal gap turned out to be invisible at the
+desk and material at an audit: what a person may do did not move, what the
+organization must evidence did. The Changes page shows that rather than an
+empty list, because an empty list would read as "nothing happened".

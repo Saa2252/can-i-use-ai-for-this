@@ -99,20 +99,22 @@ _CLAUSE_LITERAL = re.compile(
 )
 
 
-def test_clause_ids_written_in_app_code_exist_in_v1_5():
+def test_clause_ids_written_in_app_code_exist_in_the_current_policy():
     """BUILD_SPEC 11: every clause id in the YAML *and code* must exist.
 
     The Agent builder cites 11.9 and C.6.1 directly rather than through a
-    rule, so a page can cite a clause the policy does not have.
+    rule, and the Limits page cites the clauses that closed each gap, so a
+    page can cite a clause the policy does not have. Checked against the
+    version the app serves, since that is the text those pages render.
     """
-    policy = load_policy("v1_5")
+    policy = load_policy(CURRENT)
     offenders: dict[str, list[str]] = {}
     for path in sorted((PROJECT_ROOT / "app").rglob("*.py")):
         found = set(_CLAUSE_LITERAL.findall(path.read_text(encoding="utf-8")))
         missing = sorted(cid for cid in found if cid not in policy.clauses)
         if missing:
             offenders[str(path.relative_to(PROJECT_ROOT))] = missing
-    assert not offenders, f"app code cites clauses absent from v1.5: {offenders}"
+    assert not offenders, f"app code cites clauses absent from {CURRENT}: {offenders}"
 
 
 def test_the_app_code_scan_actually_finds_clause_ids():

@@ -20,6 +20,7 @@ TIMEOUT = 40
 
 PAGES = {
     "check": "pages/1_check.py",
+    "limits": "pages/7_limits.py",
     "matrix": "pages/2_matrix.py",
     "agents": "pages/3_agent_builder.py",
     "quiz": "pages/4_scenarios.py",
@@ -124,7 +125,7 @@ def test_matrix_lists_the_tier_a_conditions_in_the_policys_own_words():
     slice ever stops matching, it returns nothing and this fails rather than
     the page quietly showing a tier with no conditions under it.
     """
-    conditions = tier_a_conditions("v1_5")
+    conditions = tier_a_conditions("v1_6")
     assert len(conditions) == 9, f"expected B.1.2's nine conditions, got {conditions}"
     assert "an enterprise contract" in conditions
     assert "no training on our inputs" in conditions
@@ -133,7 +134,7 @@ def test_matrix_lists_the_tier_a_conditions_in_the_policys_own_words():
     for condition in conditions:
         assert condition in page, f"B.1.2 condition missing from the page: {condition}"
 
-    b12 = load_policy("v1_5").clauses["B.1.2"].text
+    b12 = load_policy("v1_6").clauses["B.1.2"].text
     for condition in conditions:
         assert condition in b12, f"condition is not B.1.2's own wording: {condition}"
 
@@ -141,14 +142,14 @@ def test_matrix_lists_the_tier_a_conditions_in_the_policys_own_words():
 def test_matrix_can_show_the_tier_clauses_in_full():
     """The gloss is a summary, so the clause text has to be reachable."""
     at = open_page("matrix")
-    assert load_policy("v1_5").clauses["B.1.2"].text not in body(at), (
+    assert load_policy("v1_6").clauses["B.1.2"].text not in body(at), (
         "the full clause should start hidden, or the panel is a wall of text"
     )
 
-    at.checkbox(key="cu_matrix_tier_clauses").check().run()
+    at.checkbox(key="cu_tier_clauses_v1_6").check().run()
     page = body(at)
     for clause_id in ("B.1.1", "B.1.2", "B.1.3"):
-        assert load_policy("v1_5").clauses[clause_id].text in page
+        assert load_policy("v1_6").clauses[clause_id].text in page
 
 
 def test_quiz_defines_the_four_answers_it_asks_you_to_choose_between():
@@ -183,7 +184,43 @@ def test_check_says_where_the_data_classes_are_defined():
 
     page = body(at)
     assert "Data Classification Standard" in page
-    assert load_policy("v1_5").clauses["7.4"].text in page
+    assert load_policy("v1_6").clauses["7.4"].text in page
+
+
+def test_limits_page_names_each_gap_and_the_clause_that_closed_it():
+    """A page claiming a gap is closed has to show what closed it.
+
+    Every clause named there is asserted to exist in v1.6 and to be new since
+    v1.5, so the page cannot claim v1.6 closed something v1.5 already had.
+    """
+    at = open_page("limits")
+    labels = {e.label for e in at.expander}
+    assert "Becoming a provider without building anything" in labels
+    assert "Telling the staff is not telling their representatives" in labels
+
+    v15 = set(load_policy("v1_5").clauses)
+    v16 = load_policy("v1_6").clauses
+    for clause_id in ("2.6", "10.5", "8.12", "7.7", "HR.6"):
+        assert clause_id in v16, f"{clause_id} is not in v1.6"
+        assert clause_id not in v15, f"{clause_id} was already in v1.5; it closed nothing"
+
+
+def test_limits_page_separates_closed_open_and_structural():
+    """Three different kinds of limit, and conflating them would be the easy lie."""
+    page = body(open_page("limits"))
+    assert "Found in review, and closed" in page
+    assert "Still open" in page
+    assert "Limits that do not close" in page
+    assert "model policy, not an adopted one" in page
+
+
+def test_limits_page_reports_the_real_verification_dates():
+    """Read from the entries, so it cannot advertise a date nobody checked."""
+    from engine.rules import load_basis
+
+    page = body(open_page("limits"))
+    for checked in {str(e.checked) for e in load_basis()}:
+        assert checked in page
 
 
 def test_every_matrix_cell_has_an_example():

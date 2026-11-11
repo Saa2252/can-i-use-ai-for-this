@@ -39,6 +39,7 @@ PAGES = [
     st.Page("pages/4_scenarios.py", title="Quiz", icon=":material/quiz:", url_path="quiz"),
     st.Page("pages/5_review.py", title="Changes", icon=":material/history:", url_path="changes"),
     st.Page("pages/6_policy.py", title="Policy", icon=":material/menu_book:", url_path="policy"),
+    st.Page("pages/7_limits.py", title="Limits", icon=":material/warning:", url_path="limits"),
 ]
 
 # Top navigation rather than a sidebar: this is read mostly on phones, where a

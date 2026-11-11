@@ -1,7 +1,7 @@
 # Can I Use AI For This?
 
 An interactive decision tool built from an AI Acceptable Use Policy
-(AIG-POL-001, version 1.5). You pick three things — what data, which tool,
+(AIG-POL-001, version 1.6). You pick three things — what data, which tool,
 what you're doing — and get an answer, with the clauses it rests on.
 
 ![The Check page: three inputs and a verdict with its clauses](docs/screenshots/check-verdict.jpg)
@@ -23,9 +23,10 @@ Four verdicts, and the difference between the middle two is the point:
 | **Not permitted** | Blocked as described — but a compliant route exists, and the card shows it. |
 | **Prohibited** | A hard line in Section 6. No approval route, and no exceptions. |
 
-Six pages: **Check** (the hero), **Matrix** (the data × tier grid), **Agents**
-(a permission builder), **Quiz**, **Changes** (v1.0 → v1.5), and the full
-**Policy** with search.
+Seven pages: **Check** (the hero), **Matrix** (the data × tier grid),
+**Agents** (a permission builder), **Quiz**, **Changes** (two comparisons),
+the full **Policy** with search, and **Limits** — what the policy and the tool
+do not cover.
 
 ## Rules as data, not code
 
@@ -83,9 +84,16 @@ already applies whichever requirement is stricter. The jurisdiction lens on the
 Policy page (Global / EU / US / India) highlights which laws apply where; it
 changes nothing about the answer.
 
-Entries come only from a fixed crosswalk, all checked 2026-10-22, and a test
-fails if a source appears that is not on that list. A law entry older than 90
-days shows a muted "needs re-check" tag.
+Entries come only from a fixed crosswalk, and a test fails if a source
+appears that is not on that list. A law entry older than 90 days shows a muted
+"needs re-check" tag.
+
+The crosswalk was re-verified on 2026-11-11 against the adopted Digital
+Omnibus on AI. Three entries moved, and one of them is instructive: Article 4
+survived the omnibus in weakened form, so clause 16.1 — training before access,
+refreshed yearly — is now **stricter than the law requires**. It therefore
+carries both a `law` and an `our_choice` entry. Drawing that line is the whole
+point of the backing layer, and it only became visible because the law moved.
 
 ## Screenshots
 
@@ -98,6 +106,12 @@ clause it comes from. The same 21 scenarios run through both, and four
 verdicts changed. The comparison is mechanical, but **each rulebook is a
 reading of its version's text** — which is why every card shows the clause, so
 the reading can be checked rather than taken on trust.
+
+The second comparison is the more interesting one. Running those 21 scenarios
+through v1.5 and v1.6 changes **no verdict at all** and adds clauses to six.
+That is what closing a legal gap looks like: nothing moves at the desk, and
+more has to be evidenced at an audit. The page says so rather than showing an
+empty list, because an empty list reads as "nothing happened".
 
 Every cell of the matrix is computed by the same engine the Check page uses, so
 the grid cannot drift from the verdicts. Note that Tier B's "⊘ No" and Tier C's
@@ -159,12 +173,27 @@ docs/       Screenshots
 
 `policy/AI_Acceptable_Use_Policy_v1.5.md` is v1.4 plus exactly the edits in
 BUILD_SPEC Appendix A, applied by a script that asserts each edit matched once.
+`v1.6.md` is built from v1.5 the same way, by 17 asserted edits.
+
+v1.6 closes four gaps found by reading v1.5 against the adopted omnibus. All
+four were procedural rather than substantive — the policy did the thinking and
+did not name the legal procedure that carries it:
+
+| Gap | Closed by |
+|---|---|
+| Branding or modifying a high-risk system makes you its **provider** in law, and a contract cannot undo that | 2.6 |
+| Workers' **representatives** must be informed before high-risk AI goes live at work — a different duty from telling the individuals affected | 10.5, HR.6 |
+| Where the law **names** an assessment, your own excellent assessment does not satisfy it | 8.12 |
+| Access and deletion requests have to reach agent memory, transcripts and derived indexes, not just the system of record | 7.7 |
 
 ## Open questions
 
 `OPEN_QUESTIONS.md` records every ambiguity found while building this, with the
-clause and both readings, rather than resolving any of them silently. Two are
-worth knowing about before you trust a verdict:
+clause and both readings, rather than resolving any of them silently. The
+**Limits** page in the app shows the same ground: gaps found and closed, gaps
+still open, and the limits that do not close with another revision.
+
+Two are worth knowing about before you trust a verdict:
 
 - **Q4** — whether a self-hosted model on a personal device counts as Tier C
   decides whether that case is *prohibited* or *not permitted with a route*.
@@ -177,9 +206,13 @@ worth knowing about before you trust a verdict:
 
 This is built on a **model policy**, not any organization's adopted policy. It
 is not legal advice, and the legal references are context for why a rule
-exists, not advice about your obligations. Regulatory status was checked on
-22 October 2026 and needs re-checking before anyone relies on it. Adapt the
+exists, not advice about your obligations. Regulatory status was last verified
+on 11 November 2026 and needs re-checking before anyone relies on it. Adapt the
 policy with your own counsel before adopting it.
+
+One limit worth stating plainly: an app that checks a policy against itself
+cannot tell you the policy is missing a procedure that exists only in law. The
+four gaps v1.6 closed were found by reading, not by running the engine.
 
 **Nothing you enter is stored.** There is no database, no logging of your
 choices, and no analytics. Your selections live in the URL so you can share a

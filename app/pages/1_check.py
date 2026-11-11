@@ -18,6 +18,7 @@ from app.components.inputs import (
 )
 from app.components.legend import render_data_class_key
 from app.components.shell import inject_styles, page_header
+from app.components.tiers import render_tier_key
 from app.components.verdict_card import render_verdict
 from engine.rules import evaluate
 from engine.scenarios import scenario
@@ -91,6 +92,7 @@ def main() -> None:
     # 375x812 (BUILD_SPEC 1), and this panel costs 40px it does not have. The
     # data-class question carries the same guidance as its own help tooltip.
     render_data_class_key(VERSION)
+    render_tier_key(VERSION)
 
     write_query_params(visible)
     render_footer(VERSION)

@@ -9,15 +9,14 @@ from __future__ import annotations
 
 import streamlit as st
 
-from app.components.clause_drawer import render_clause
 from app.components.footer import render_footer
 from app.components.shell import escape, inject_styles, page_header
-from app.components.tiers import TIER_CLAUSES, TIER_GLOSS, tier_a_conditions
+from app.components.tiers import render_tier_key
 from app.components.verdict_card import render_verdict
 from app.styles.tokens import style_for
 from engine.models import Activity, DataClass, Inputs, Tool
 from engine.policy_parser import load_policy
-from engine.rules import evaluate, resolve_clauses
+from engine.rules import evaluate
 
 VERSION = "v1_6"
 SELECTED = "cu_matrix_cell"
@@ -110,45 +109,13 @@ def _render_selection() -> None:
     render_verdict(evaluate(cell_inputs(data_class, tool), VERSION), version=VERSION)
 
 
-def _render_tier_key() -> None:
-    """What the three column headings mean.
-
-    The grid's headings are bare letters, which say nothing to a reader who
-    has not read Part B. B.1.2's nine Tier A conditions are shown as a list
-    rather than as its own run-in sentence, which is unreadable on a phone;
-    the wording is still the clause's, and the full clauses are one more tap
-    away rather than dumped into the panel.
-    """
-    conditions = tier_a_conditions(VERSION)
-
-    with st.expander("What Tier A, B and C mean"):
-        st.html(
-            '<p class="cu-hint">A tool\'s tier is assigned by IT and Security, '
-            "not by the person using it. The lines below are a plain-English "
-            "gloss; the clause wording is underneath.</p>"
-        )
-
-        for tier, gloss in TIER_GLOSS:
-            st.html(
-                f'<p class="cu-label">{escape(tier)}</p>'
-                f'<p class="cu-clause__text">{escape(gloss)}</p>'
-            )
-            if tier == "Tier A" and conditions:
-                items = "".join(f"<li>{escape(c)}</li>" for c in conditions)
-                st.html(f'<ul class="cu-list">{items}</ul>')
-
-        if st.checkbox("Show B.1.1 to B.1.3 in full", key="cu_matrix_tier_clauses"):
-            for clause in resolve_clauses(TIER_CLAUSES, VERSION):
-                render_clause(clause)
-
-
 def main() -> None:
     inject_styles()
     page_header(
         "Which tools may hold which data",
         "The 7.1 grid. Every cell is worked out by the same rules the Check page uses.",
     )
-    _render_tier_key()
+    render_tier_key(VERSION)
     _render_grid()
     _render_selection()
     render_footer(VERSION)
