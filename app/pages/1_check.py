@@ -16,6 +16,7 @@ from app.components.inputs import (
     share_url,
     write_query_params,
 )
+from app.components.legend import render_data_class_key
 from app.components.shell import inject_styles, page_header
 from app.components.verdict_card import render_verdict
 from engine.rules import evaluate
@@ -85,6 +86,11 @@ def main() -> None:
     inputs, visible = render_inputs()
     verdict = evaluate(inputs, VERSION)
     render_verdict(verdict, version=VERSION, share_url=share_url(visible))
+
+    # Below the verdict, not above it: the hero has to reach an answer within
+    # 375x812 (BUILD_SPEC 1), and this panel costs 40px it does not have. The
+    # data-class question carries the same guidance as its own help tooltip.
+    render_data_class_key(VERSION)
 
     write_query_params(visible)
     render_footer(VERSION)

@@ -14,6 +14,7 @@ import streamlit as st
 from app.components.basis_badges import render_basis_row
 from app.components.clause_drawer import render_clause_chips, render_clause_drawer
 from app.components.footer import render_footer
+from app.components.legend import render_verdict_key
 from app.components.scenario_text import describe_scenario
 from app.components.shell import escape, inject_styles, page_header
 from app.styles.tokens import STATUS_STYLES, style_for
@@ -105,18 +106,29 @@ def _render_question(position: int, example: Scenario) -> None:
 
 
 def _render_score(order: list[int]) -> None:
+    """Progress from the first paint, so the page says how long it is.
+
+    This used to render nothing until a question was answered, so the page
+    opened on question 1 with no sign that there were ten of them.
+    """
     answers = st.session_state[ANSWERS_KEY]
     answered = [n for n in order if n in answers]
+    remaining = len(order) - len(answered)
+
     if not answered:
+        st.html(
+            f'<p class="cu-hint">{len(order)} questions. Pick an answer and the '
+            "clauses behind it open underneath.</p>"
+        )
         return
 
     by_number = {scenario.n: scenario for scenario in load_scenarios()}
     score = sum(1 for n in answered if answers[n] is evaluate(by_number[n].inputs, VERSION).status)
 
     st.markdown("## Your score")
+    tail = f"{remaining} still to answer." if remaining else "All answered."
     st.html(
-        f'<p class="cu-score">{score} / {len(answered)}</p>'
-        f'<p class="cu-hint">{len(order) - len(answered)} still to answer.</p>'
+        f'<p class="cu-score">{score} / {len(answered)}</p><p class="cu-hint">{escape(tail)}</p>'
     )
 
     if len(answered) == len(order):
@@ -142,6 +154,9 @@ def main() -> None:
     order = _ensure_quiz()
     by_number = {scenario.n: scenario for scenario in load_scenarios()}
 
+    # The four options are the question. Defining them only on the verdict
+    # card is no use here, where picking between them is the task.
+    render_verdict_key()
     _render_score(order)
     for position, number in enumerate(order, start=1):
         _render_question(position, by_number[number])

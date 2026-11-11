@@ -19,6 +19,7 @@ ENTRYPOINT = str(Path(__file__).resolve().parent.parent / "app" / "main.py")
 TIMEOUT = 40
 
 PAGES = {
+    "check": "pages/1_check.py",
     "matrix": "pages/2_matrix.py",
     "agents": "pages/3_agent_builder.py",
     "quiz": "pages/4_scenarios.py",
@@ -148,6 +149,41 @@ def test_matrix_can_show_the_tier_clauses_in_full():
     page = body(at)
     for clause_id in ("B.1.1", "B.1.2", "B.1.3"):
         assert load_policy("v1_5").clauses[clause_id].text in page
+
+
+def test_quiz_defines_the_four_answers_it_asks_you_to_choose_between():
+    """The options are the question, so the page has to say what they mean.
+
+    The wording is asserted to be the same subtitles the verdict cards use,
+    which is what stops a key and a card disagreeing about a verdict.
+    """
+    at = open_page("quiz")
+    assert "What the four answers mean" in {e.label for e in at.expander}
+
+    page = body(at)
+    for status in (Status.ALLOWED, Status.NEEDS_APPROVAL, Status.NOT_PERMITTED, Status.PROHIBITED):
+        assert STATUS_STYLES[status].word in page
+        assert STATUS_STYLES[status].subtitle in page
+
+
+def test_quiz_says_how_many_questions_before_anything_is_answered():
+    """It used to render nothing here, so the page opened with no sense of length."""
+    page = body(open_page("quiz"))
+    assert "10 questions" in page
+
+
+def test_check_says_where_the_data_classes_are_defined():
+    """7.4 defines Restricted; the rest are deferred to an external standard.
+
+    The page has to be straight about that rather than invent definitions
+    the policy does not contain.
+    """
+    at = open_page("check")
+    assert "What the five data classes mean" in {e.label for e in at.expander}
+
+    page = body(at)
+    assert "Data Classification Standard" in page
+    assert load_policy("v1_5").clauses["7.4"].text in page
 
 
 def test_every_matrix_cell_has_an_example():
