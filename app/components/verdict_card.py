@@ -15,6 +15,25 @@ from app.styles.tokens import APPROVAL_LABELS, style_for
 from engine.models import ApprovalKind, Status, Verdict
 
 
+def render_waiting(prompt: str) -> None:
+    """The card shown when a required answer has been cleared.
+
+    A segmented control deselects when its chosen chip is clicked again, so a
+    visitor can empty an answer the engine needs. Before this, that reached
+    pydantic as None and Streamlit printed a ValidationError traceback to
+    someone who had done nothing wrong.
+    """
+    st.html(
+        '<div class="cu-card cu-card--waiting">'
+        '<p class="cu-status">'
+        '<span class="cu-status__icon" aria-hidden="true">?</span>'
+        f"<span>{escape(prompt)}</span></p>"
+        '<p class="cu-subtitle">Clicking a chosen chip again clears it. '
+        "Pick one and the answer comes straight back.</p>"
+        "</div>"
+    )
+
+
 def render_verdict(
     verdict: Verdict,
     *,

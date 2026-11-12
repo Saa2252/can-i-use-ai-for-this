@@ -11,6 +11,8 @@ import streamlit as st
 from app.components.footer import render_footer
 from app.components.inputs import (
     apply_example,
+    missing_prompt,
+    missing_required,
     render_inputs,
     seed_from_query_params,
     share_url,
@@ -19,7 +21,7 @@ from app.components.inputs import (
 from app.components.legend import render_data_class_key
 from app.components.shell import inject_styles, page_header
 from app.components.tiers import render_tier_key
-from app.components.verdict_card import render_verdict
+from app.components.verdict_card import render_verdict, render_waiting
 from engine.rules import evaluate
 from engine.scenarios import scenario
 
@@ -85,8 +87,11 @@ def main() -> None:
             )
 
     inputs, visible = render_inputs()
-    verdict = evaluate(inputs, VERSION)
-    render_verdict(verdict, version=VERSION, share_url=share_url(visible))
+    if inputs is None:
+        render_waiting(missing_prompt(missing_required()))
+    else:
+        verdict = evaluate(inputs, VERSION)
+        render_verdict(verdict, version=VERSION, share_url=share_url(visible))
 
     # Below the verdict, not above it: the hero has to reach an answer within
     # 375x812 (BUILD_SPEC 1), and this panel costs 40px it does not have. The

@@ -111,6 +111,10 @@ h3 {
 .cu-card--not-permitted { border-left-color: var(--not-permitted); background: var(--not-permitted-tint); }
 .cu-card--prohibited { border-left-color: var(--prohibited); background: var(--prohibited-tint); }
 
+/* No verdict yet, because a required answer is empty. Deliberately uncoloured:
+   this is not a fifth status, it is the absence of a question. */
+.cu-card--waiting { border-left-color: var(--border-strong); background: var(--surface); }
+
 /* Status line: icon + word + colour, so colour is never the only signal.
    Large bold type, which is where amber meets AA. */
 .cu-status {
@@ -143,6 +147,8 @@ h3 {
 .cu-card--not-permitted .cu-status__icon { background: var(--not-permitted); }
 .cu-card--prohibited .cu-status { color: var(--prohibited); }
 .cu-card--prohibited .cu-status__icon { background: var(--prohibited); }
+.cu-card--waiting .cu-status { color: var(--text); font-size: 1.1rem; }
+.cu-card--waiting .cu-status__icon { background: var(--muted); }
 
 .cu-approval {
   display: inline-block;

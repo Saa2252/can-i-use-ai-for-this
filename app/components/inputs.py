@@ -64,6 +64,33 @@ FIELDS: tuple[Field, ...] = (
 
 BY_KEY = {field.key: field for field in FIELDS}
 
+#: The three inputs the engine cannot answer without. They are not guaranteed
+#: to hold a value: `st.segmented_control` clears itself when its chosen chip
+#: is clicked again, so a visitor can empty an answer at any time.
+REQUIRED_KEYS: tuple[str, ...] = ("data_class", "tool", "activity")
+
+#: How each required input is named when it is the one still missing.
+REQUIRED_LABELS: dict[str, str] = {
+    "data_class": "a data class",
+    "tool": "a tool",
+    "activity": "an activity",
+}
+
+
+def missing_required() -> list[str]:
+    """The required inputs with no value right now, in the order they are asked."""
+    return [key for key in REQUIRED_KEYS if st.session_state.get(key) is None]
+
+
+def missing_prompt(missing: list[str]) -> str:
+    """The sentence shown in place of a verdict, named for what is unset."""
+    names = [REQUIRED_LABELS[key] for key in missing]
+    if not names:
+        return "Pick an answer above to see the verdict."
+    if len(names) > 1:
+        names = [", ".join(names[:-1]) + " and " + names[-1]]
+    return f"Pick {names[0]} to see the answer."
+
 
 # --------------------------------------------------------------------------
 # Labels
@@ -187,12 +214,22 @@ def write_query_params(visible_keys: list[str]) -> None:
     Only what is on screen is written, so a shared link carries the question
     that was actually asked and nothing stale behind it.
     """
-    st.query_params.from_dict({key: _encode(st.session_state[key]) for key in visible_keys})
+    st.query_params.from_dict(
+        {
+            key: _encode(st.session_state[key])
+            for key in visible_keys
+            if st.session_state[key] is not None
+        }
+    )
 
 
 def share_url(visible_keys: list[str]) -> str:
     """A URL that reproduces this verdict."""
-    query = "&".join(f"{key}={_encode(st.session_state[key])}" for key in visible_keys)
+    query = "&".join(
+        f"{key}={_encode(st.session_state[key])}"
+        for key in visible_keys
+        if st.session_state[key] is not None
+    )
     try:
         base = (st.context.url or "").split("?")[0]
     except Exception:  # noqa: BLE001 - no browser context, e.g. under AppTest
@@ -213,8 +250,12 @@ def apply_example(example_inputs: Inputs) -> None:
 # --------------------------------------------------------------------------
 
 
-def render_inputs() -> tuple[Inputs, list[str]]:
-    """Render the inputs and return the parsed `Inputs` plus the visible keys."""
+def render_inputs() -> tuple[Inputs | None, list[str]]:
+    """Render the inputs and return the parsed `Inputs` plus the visible keys.
+
+    `Inputs` is None when a required answer has been cleared. The caller asks
+    for it rather than evaluating, because there is no question to answer yet.
+    """
     visible: list[str] = ["data_class", "data_kind", "tool", "activity"]
 
     st.segmented_control(
@@ -340,13 +381,20 @@ def _render_agent_flags() -> list[str]:
     return shown
 
 
-def _build_inputs(visible: list[str]) -> Inputs:
-    """Build `Inputs` from the visible fields only.
+def _build_inputs(visible: list[str]) -> Inputs | None:
+    """Build `Inputs` from the visible fields only, or None if one is missing.
 
     A hidden field contributes nothing, so switching away from "agent" cannot
     leave a stale `agent_action` behind to influence the verdict.
+
+    A cleared segmented control leaves a required field as None, which pydantic
+    rejects. Returning None here keeps that in the UI layer, where it is a
+    question not yet answered, rather than letting it reach the engine as an
+    invalid one.
     """
     values: dict[str, Any] = {}
     for key in visible:
         values[key] = st.session_state[key]
+    if any(values.get(key) is None for key in REQUIRED_KEYS):
+        return None
     return Inputs(**values)

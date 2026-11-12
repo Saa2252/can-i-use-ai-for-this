@@ -355,3 +355,74 @@ def test_the_nav_compactness_rule_targets_the_top_nav() -> None:
     css = CSS_FILE.read_text(encoding="utf-8")
     without_comments = re.sub(r"/\*.*?\*/", "", css, flags=re.DOTALL)
     assert "stTopNavLink" in without_comments, "nothing styles the top nav links"
+
+
+# --------------------------------------------------------------------------
+# No visitor ever sees a traceback (Phase 1)
+# --------------------------------------------------------------------------
+
+#: Every registered page, by the script path `st.navigation` knows it by.
+#: Read from `app/main.py` so a page added later is covered without an edit
+#: here — a test that lists pages by hand stops testing the ones you forget.
+ALL_PAGES: list[str] = re.findall(
+    r'st\.Page\(\s*"([^"]+)"',
+    (Path(__file__).resolve().parent.parent / "app" / "main.py").read_text(encoding="utf-8"),
+)
+
+
+def test_every_registered_page_is_discovered() -> None:
+    """Guards the regex above: if it silently matched nothing, so would the
+    parametrized test below, and an empty sweep passes."""
+    assert len(ALL_PAGES) == 7, ALL_PAGES
+
+
+@pytest.mark.parametrize("page", ALL_PAGES)
+def test_every_page_loads_clean_with_no_query_params(page: str) -> None:
+    """A visitor arriving at a bare URL sees the page, never a traceback."""
+    at = AppTest.from_file(ENTRYPOINT, default_timeout=TIMEOUT)
+    at.run()
+    at.switch_page(page)
+    at.run()
+    assert not at.exception, f"{page} raised: {[e.message for e in at.exception]}"
+
+
+#: Clicking the chosen chip of an `st.segmented_control` again deselects it,
+#: setting the session value to None. Both of the Check page's segmented
+#: controls back a field pydantic requires.
+CLEARABLE = {"data_class": "a data class", "tool": "a tool"}
+
+
+@pytest.mark.parametrize("key,name", sorted(CLEARABLE.items()))
+def test_clearing_a_required_input_asks_instead_of_crashing(key: str, name: str) -> None:
+    at = run_app()
+    assert not at.exception
+
+    at.session_state[key] = None
+    at.run()
+
+    assert not at.exception, (
+        f"clearing {key} raised {[e.message for e in at.exception]}. A visitor "
+        f"deselects a chip by clicking it; that must never reach pydantic."
+    )
+    assert f"Pick {name} to see the answer" in body(at)
+
+
+def test_the_prompt_names_every_cleared_input() -> None:
+    at = run_app()
+    at.session_state["data_class"] = None
+    at.session_state["tool"] = None
+    at.run()
+
+    assert not at.exception
+    assert "Pick a data class and a tool to see the answer" in body(at)
+
+
+def test_a_cleared_input_is_left_out_of_the_share_link() -> None:
+    """A link carrying `tool=None` would decode to the default on arrival,
+    which silently answers a question the sender never answered."""
+    at = run_app()
+    at.session_state["tool"] = None
+    at.run()
+
+    assert "tool" not in at.query_params
+    assert at.query_params.get("data_class") is not None
