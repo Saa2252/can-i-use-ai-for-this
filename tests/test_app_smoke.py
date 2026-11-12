@@ -107,10 +107,23 @@ def test_footer_states_the_privacy_and_advice_disclaimers():
     assert f"Status checked {checked}" in page
 
 
-def test_example_chips_are_offered_for_scenarios_2_4_and_8():
+#: Phase 2 replaced three chips with six, chosen so that each lands in a
+#: different part of the policy: a tool question, a decision about a person,
+#: an agent, a prohibited practice, confidentiality, and a secret.
+EXAMPLE_SCENARIOS = (2, 5, 8, 13, 19, 12)
+
+
+def test_an_example_chip_is_offered_for_each_of_the_six_scenarios():
     at = run_app()
     keys = {button.key for button in at.button}
-    assert {"cu_example_2", "cu_example_4", "cu_example_8"} <= keys
+    assert {f"cu_example_{n}" for n in EXAMPLE_SCENARIOS} <= keys
+
+
+def test_the_example_chips_do_not_all_give_the_same_answer():
+    """Six examples that land on one verdict teach that the answer is always
+    no. They have to disagree with each other to be worth tapping."""
+    statuses = {evaluate(scenario(n).inputs, "v1_6").status for n in EXAMPLE_SCENARIOS}
+    assert len(statuses) > 1, f"all six examples are {statuses}"
 
 
 # --------------------------------------------------------------------------
@@ -304,9 +317,28 @@ def test_demo_mode_leaves_the_page_usable_afterwards():
     assert STATUS_STYLES[Status.PROHIBITED].word not in body(at)
 
 
-def test_without_demo_the_defaults_load():
+def test_a_bare_visit_opens_on_an_answer_not_on_empty_defaults():
+    """BUILD_SPEC 1, tightened in Phase 2: a visitor who arrives with nothing
+    in the URL gets a loaded situation and its verdict, not four blank
+    questions and a safe-looking default."""
     at = run_app()
+    opening = evaluate(scenario(2).inputs, "v1_6")
+    assert opening.status is Status.PROHIBITED, "the opening example should be worth seeing"
+    assert STATUS_STYLES[opening.status].word in body(at)
+
+
+def test_a_shared_link_still_beats_the_opening_example():
+    """Opening on an example must never overwrite an answer someone sent."""
+    allowed = next(
+        s for s in load_scenarios() if evaluate(s.inputs, "v1_6").status is Status.ALLOWED
+    )
+    at = run_app(**params_for(allowed.inputs))
     assert STATUS_STYLES[Status.ALLOWED].word in body(at)
+
+
+def test_the_form_sits_under_its_own_heading():
+    """The inputs moved below the verdict, so they need introducing."""
+    assert "Build your own" in body(run_app())
 
 
 # --- Streamlit chrome -------------------------------------------------- #

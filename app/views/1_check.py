@@ -1,7 +1,15 @@
 """The hero page: "Can I use AI for this?"
 
-Three choices and a verdict, without scrolling first (BUILD_SPEC 1). The
-verdict reproduces from its URL, and nothing the visitor enters is stored.
+The page opens on an answer. A visitor who arrives with nothing in the URL
+gets a real situation already loaded, so the first thing on screen is a
+verdict with its clauses rather than four empty questions (BUILD_SPEC 1).
+
+Order is examples, then the verdict, then the form. The verdict is rendered
+into a container reserved before the inputs exist, because it has to appear
+above the controls that produce it: a reader should see what this page
+answers before being asked to operate it.
+
+The verdict reproduces from its URL, and nothing the visitor enters is stored.
 """
 
 from __future__ import annotations
@@ -10,6 +18,8 @@ import streamlit as st
 
 from app.components.footer import render_footer
 from app.components.inputs import (
+    INPUT_KEYS,
+    SEEDED_FLAG,
     apply_example,
     missing_prompt,
     missing_required,
@@ -27,19 +37,24 @@ from engine.scenarios import scenario
 
 VERSION = "v1_6"
 
-#: BUILD_SPEC 9.1: a "Try an example" chip row for scenarios 2, 4 and 8.
-#: Labels are kept short so more than one chip fits a 375px row.
+#: Six golden scenarios, each a situation a reader will recognise and each
+#: landing somewhere different in the policy: a tool question, a decision
+#: about a person, an agent, a prohibited practice, a confidentiality
+#: question, and a secret. The label is what fits on a chip; the scenario's
+#: own sentence is the tooltip, so nothing here restates the scenario file.
 EXAMPLES: tuple[tuple[int, str], ...] = (
     (2, "Client contract"),
-    (4, "Naming colleagues"),
+    (5, "CV screening"),
     (8, "Agent emails"),
+    (13, "Emotion detection"),
+    (19, "Legal meeting"),
+    (12, "API key"),
 )
 
-
-#: `?demo=1` preloads this scenario, for a screen recording that opens on a
-#: verdict rather than on the defaults (BUILD_SPEC 10, Phase 5).
-DEMO_SCENARIO = 2
-DEMO_FLAG = "cu_demo_loaded"
+#: What loads when the URL carries no answer of its own. Scenario 2 is the
+#: one most people have already done, and it is Prohibited, so the page opens
+#: on the answer that is worth arriving at rather than on a safe default.
+OPENING_SCENARIO = 2
 
 
 def _load_example(number: int) -> None:
@@ -48,33 +63,27 @@ def _load_example(number: int) -> None:
     apply_example(scenario(number).inputs)
 
 
-def _apply_demo_mode() -> bool:
-    """Preload the demo scenario once, before any widget is created.
+def _seed_once() -> None:
+    """Fill the widgets for this session, before any of them is created.
 
-    It loads a single time per session, so the recording can keep clicking
-    afterwards without the page snapping back to the demo.
+    A shared link carries its own answer and wins. Anything else — a bare
+    visit, or `?demo=1` for a screen recording — opens on the example. It
+    runs once per session, so the page never snaps back while being used.
     """
-    if st.query_params.get("demo") != "1":
-        return False
-    if st.session_state.get(DEMO_FLAG):
-        return True
-    apply_example(scenario(DEMO_SCENARIO).inputs)
-    st.session_state[DEMO_FLAG] = True
-    return True
-
-
-def main() -> None:
-    inject_styles()
-    page_header(
-        "Can I use AI for this?",
-        "An answer from the AI Acceptable Use Policy, with the clauses it rests on.",
-    )
-
-    demo = _apply_demo_mode()
-    if not demo:
+    if st.session_state.get(SEEDED_FLAG):
+        return
+    if any(key in st.query_params for key in INPUT_KEYS):
         seed_from_query_params()
+    else:
+        apply_example(scenario(OPENING_SCENARIO).inputs)
 
-    st.html('<p class="cu-label">Try an example</p>')
+
+def _render_examples() -> None:
+    st.html(
+        '<p class="cu-label">Start with a real one</p>'
+        '<p class="cu-hint">Six situations from the scenario set. One tap loads '
+        "it and answers it.</p>"
+    )
     with st.container(horizontal=True, gap="small"):
         for number, label in EXAMPLES:
             st.button(
@@ -86,16 +95,36 @@ def main() -> None:
                 width="content",
             )
 
-    inputs, visible = render_inputs()
-    if inputs is None:
-        render_waiting(missing_prompt(missing_required()))
-    else:
-        verdict = evaluate(inputs, VERSION)
-        render_verdict(verdict, version=VERSION, share_url=share_url(visible))
 
-    # Below the verdict, not above it: the hero has to reach an answer within
-    # 375x812 (BUILD_SPEC 1), and this panel costs 40px it does not have. The
-    # data-class question carries the same guidance as its own help tooltip.
+def main() -> None:
+    inject_styles()
+    page_header(
+        "Can I use AI for this?",
+        "An answer from the AI Acceptable Use Policy, with the clauses it rests on.",
+    )
+
+    _seed_once()
+    _render_examples()
+
+    # Reserved before the inputs exist, and filled after they are read. The
+    # verdict depends on widgets rendered below it, which Streamlit allows
+    # only through a container held open like this.
+    verdict_slot = st.container()
+
+    st.markdown("## Build your own")
+    st.html(
+        '<p class="cu-hint">Change any answer and the verdict above updates. '
+        "Every question is one the policy actually turns on.</p>"
+    )
+    inputs, visible = render_inputs()
+
+    with verdict_slot:
+        if inputs is None:
+            render_waiting(missing_prompt(missing_required()))
+        else:
+            verdict = evaluate(inputs, VERSION)
+            render_verdict(verdict, version=VERSION, share_url=share_url(visible))
+
     render_data_class_key(VERSION)
     render_tier_key(VERSION)
 

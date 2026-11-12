@@ -198,8 +198,7 @@ def _render_structural() -> None:
     st.markdown("## Limits that do not close")
     for title, body in STRUCTURAL:
         st.html(
-            f'<p class="cu-limit">{escape(title)}</p>'
-            f'<p class="cu-clause__text">{escape(body)}</p>'
+            f'<p class="cu-limit">{escape(title)}</p><p class="cu-clause__text">{escape(body)}</p>',
         )
 
 

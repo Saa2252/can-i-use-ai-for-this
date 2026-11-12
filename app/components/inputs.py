@@ -64,6 +64,10 @@ FIELDS: tuple[Field, ...] = (
 
 BY_KEY = {field.key: field for field in FIELDS}
 
+#: Every query parameter that carries an answer, so a caller can tell a shared
+#: verdict link from a bare visit and decide what to open on.
+INPUT_KEYS: frozenset[str] = frozenset(field.key for field in FIELDS)
+
 #: The three inputs the engine cannot answer without. They are not guaranteed
 #: to hold a value: `st.segmented_control` clears itself when its chosen chip
 #: is clicked again, so a visitor can empty an answer at any time.
@@ -96,12 +100,24 @@ def missing_prompt(missing: list[str]) -> str:
 # Labels
 # --------------------------------------------------------------------------
 
+#: Plain English first, the policy's own term after it, because the term is
+#: what the clauses, the Matrix and a colleague will say. The term cannot be
+#: set in smaller grey type: a segmented control renders its label through a
+#: markdown container that strips colour directives, so `:gray[...]` comes
+#: out as plain text. The separator carries the distinction instead.
+#:
+#: Only the classes this policy defines are glossed. 7.4 defines Restricted
+#: outright and 6.3 names what a secret is, so those glosses are the clause's
+#: own examples. Public and Internal are set by the organization's external
+#: Data Classification Standard (7.5), so inventing examples for them here
+#: would be this app writing policy (BUILD_SPEC 0.1). They stay bare, and the
+#: key below the form says where they come from.
 DATA_CLASS_LABELS = {
     DataClass.PUBLIC: "Public",
     DataClass.INTERNAL: "Internal",
-    DataClass.CONFIDENTIAL: "Confidential",
-    DataClass.RESTRICTED: "Restricted",
-    DataClass.SECRETS: "Secrets",
+    DataClass.CONFIDENTIAL: "Client or HR information · Confidential",
+    DataClass.RESTRICTED: "Health, ID or payment data · Restricted",
+    DataClass.SECRETS: "Passwords & keys · Secrets",
 }
 
 #: Worked examples drawn from 7.4, 7.5 and B.2.3, so the control teaches
@@ -114,11 +130,13 @@ DATA_KIND_LABELS = {
     DataKind.CLIENT_INFO: "A client's name or non-public client info (B.2.3)",
 }
 
+#: Same pattern, from B.1.1 to B.1.3: assessed and approved, vetted with gaps,
+#: not assessed at all, and a model the organization runs itself.
 TOOL_LABELS = {
-    Tool.TIER_A: "Tier A",
-    Tool.TIER_B: "Tier B",
-    Tool.TIER_C: "Tier C / personal",
-    Tool.SELF_HOSTED: "Self-hosted",
+    Tool.TIER_A: "Company-approved AI · Tier A",
+    Tool.TIER_B: "Vetted, with gaps · Tier B",
+    Tool.TIER_C: "Personal or free AI · Tier C",
+    Tool.SELF_HOSTED: "A model we run ourselves · Self-hosted",
 }
 
 HOST_LABELS = {
