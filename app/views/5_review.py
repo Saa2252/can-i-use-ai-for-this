@@ -15,6 +15,7 @@ from app.components.scenario_text import describe_scenario
 from app.components.shell import escape, inject_styles, page_header
 from app.components.verdict_card import render_compact_verdict
 from app.styles.tokens import style_for
+from engine.models import Status
 from engine.policy_parser import load_policy
 from engine.review import changed_verdicts, compare, compare_all
 from engine.scenarios import load_scenarios
@@ -185,14 +186,10 @@ def _render_changed_list(before: str, after: str) -> None:
             render_clause_drawer(change.added_clauses, after, label="Read what was added")
         return
 
-    for change in changes:
+    for change in sorted(changes, key=_story_rank):
+        sentence = _flip_sentence(change, before_label, after_label)
         before, after = change.before, change.after
         before_style, after_style = style_for(before.status), style_for(after.status)
-        detail = (
-            "the kind of approval changed"
-            if not change.status_changed
-            else "the answer itself changed"
-        )
         st.html(
             f'<div class="cu-change">'
             f'<p class="cu-change__title">{escape(change.scenario.title)}</p>'
@@ -202,8 +199,41 @@ def _render_changed_list(before: str, after: str) -> None:
             f'<span class="cu-arrow">&rarr;</span>'
             f'<span class="cu-pill cu-pill--{after_style.slug}">'
             f"{after_style.icon} {escape(_label(after))}</span></p>"
-            f'<p class="cu-meta">{escape(detail)}</p></div>'
+            f'<p class="cu-meta">{escape(sentence)}</p></div>'
         )
+
+
+def _story_rank(change) -> tuple[int, int, str]:
+    """Order the flips by how much they change what someone may do.
+
+    A thing that was Allowed and no longer is comes first: it is the only kind
+    of change that takes something away from a reader who was already doing it.
+    Then the rest of the answer changes, then the ones where only the route to
+    the same answer moved. Ties fall back to the title, so the order is stable.
+    """
+    was_allowed = change.before.status is Status.ALLOWED
+    return (0 if was_allowed else 1, 0 if change.status_changed else 1, change.scenario.title)
+
+
+def _flip_sentence(change, before_label: str, after_label: str) -> str:
+    """One sentence saying what moved, citing the clauses that moved it.
+
+    Built from the comparison rather than written, so it cannot describe a
+    change the rulesets do not actually make. "The answer itself changed" was
+    true of most cards and told a reader nothing they could check.
+    """
+    nature = (
+        "The answer itself moved."
+        if change.status_changed
+        else "Same answer, different route to it."
+    )
+    if change.added_clauses:
+        cites = ", ".join(change.added_clauses)
+        return f"{nature} {after_label} cites {cites} here, and {before_label} did not."
+    if change.dropped_clauses:
+        cites = ", ".join(change.dropped_clauses)
+        return f"{nature} {before_label} cited {cites} here, and {after_label} does not."
+    return f"{nature} Both versions cite the same clauses, and read them differently."
 
 
 def _label(verdict) -> str:

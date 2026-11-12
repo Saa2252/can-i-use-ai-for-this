@@ -3,6 +3,15 @@
 Ten of the golden scenarios, shuffled, always including 4, 8, 9 and 14 —
 the four that show the policy's most interesting lines. Each reveal gives the
 clauses and the backing, so a wrong answer teaches the rule.
+
+One question at a time. Ten at once is a wall of text in which no single
+question is the thing you are doing, and the answer to question 7 is visible
+while you are still on question 2.
+
+The question itself is the scenario's title, which is how a colleague would
+actually put it. The input breakdown — data class, tier, flags — moves into
+the reveal, because naming the class and the tier up front turns the question
+into a lookup in the Matrix rather than an exercise in classifying.
 """
 
 from __future__ import annotations
@@ -27,6 +36,10 @@ QUESTION_COUNT = 10
 
 ORDER_KEY = "cu_quiz_order"
 ANSWERS_KEY = "cu_quiz_answers"
+AT_KEY = "cu_quiz_at"
+
+#: A score arriving in the URL is someone else's result, not this session's.
+SHARED_SCORE = "score"
 
 #: The four choices offered for every question.
 CHOICES: tuple[Status, ...] = (
@@ -54,12 +67,23 @@ def _ensure_quiz() -> list[int]:
     if ORDER_KEY not in st.session_state:
         st.session_state[ORDER_KEY] = build_quiz()
         st.session_state[ANSWERS_KEY] = {}
+        st.session_state[AT_KEY] = 0
     return st.session_state[ORDER_KEY]
 
 
 def _restart() -> None:
     st.session_state[ORDER_KEY] = build_quiz()
     st.session_state[ANSWERS_KEY] = {}
+    st.session_state[AT_KEY] = 0
+
+
+def _advance() -> None:
+    order = st.session_state[ORDER_KEY]
+    st.session_state[AT_KEY] = min(st.session_state[AT_KEY] + 1, len(order))
+
+
+def _back() -> None:
+    st.session_state[AT_KEY] = max(st.session_state[AT_KEY] - 1, 0)
 
 
 def _answer(number: int) -> None:
@@ -68,9 +92,56 @@ def _answer(number: int) -> None:
         st.session_state[ANSWERS_KEY][number] = picked
 
 
-def _render_question(position: int, example: Scenario) -> None:
+def _by_number() -> dict[int, Scenario]:
+    return {scenario.n: scenario for scenario in load_scenarios()}
+
+
+def _score(order: list[int]) -> tuple[int, int]:
+    """Correct answers, and how many have been answered at all."""
+    answers = st.session_state[ANSWERS_KEY]
+    by_number = _by_number()
+    answered = [n for n in order if n in answers]
+    correct = sum(
+        1 for n in answered if answers[n] is evaluate(by_number[n].inputs, VERSION).status
+    )
+    return correct, len(answered)
+
+
+def _render_progress(order: list[int]) -> None:
+    """Where you are, how far there is to go, and how you are doing."""
+    position = min(st.session_state[AT_KEY], len(order) - 1)
+    correct, answered = _score(order)
+
+    tail = f" · {correct} right so far" if answered else ""
+    st.progress(
+        (position + 1) / len(order),
+        text=f"Question {position + 1} of {len(order)}{tail}",
+    )
+
+
+def _render_reveal(example: Scenario, picked: Status) -> None:
+    """The answer, why, and the inputs that produced it."""
+    verdict = evaluate(example.inputs, VERSION)
+    style = style_for(verdict.status)
+    mark = "✓ Correct" if picked is verdict.status else "✕ Not quite"
+
+    st.html(
+        f'<div class="cu-card cu-card--{style.slug}">'
+        f'<p class="cu-status"><span class="cu-status__icon" aria-hidden="true">'
+        f"{style.icon}</span><span>{escape(style.word)}</span></p>"
+        f'<p class="cu-approval">{escape(mark)}</p>'
+        f'<p class="cu-reason">{escape(verdict.reasons[0] if verdict.reasons else "")}</p>'
+        f"</div>"
+        f'<p class="cu-label">What you were being asked</p>'
+        f'<p class="cu-hint">{escape(describe_scenario(example))}</p>'
+    )
+    render_clause_chips(verdict.clauses)
+    render_clause_drawer(verdict.clauses, VERSION)
+    render_basis_row(verdict.basis)
+
+
+def _render_question(position: int, example: Scenario, last: bool) -> None:
     st.markdown(f"## {position}. {example.title}")
-    st.html(f'<p class="cu-hint">{escape(describe_scenario(example))}</p>')
 
     st.segmented_control(
         "What does the policy say?",
@@ -85,63 +156,70 @@ def _render_question(position: int, example: Scenario) -> None:
 
     picked = st.session_state[ANSWERS_KEY].get(example.n)
     if picked is None:
-        return
+        st.html('<p class="cu-hint">Pick one. The clauses open as soon as you do.</p>')
+    else:
+        _render_reveal(example, picked)
 
-    verdict = evaluate(example.inputs, VERSION)
-    correct = picked is verdict.status
-    style = style_for(verdict.status)
-    mark = "✓ Correct" if correct else "✕ Not quite"
+    with st.container(horizontal=True, gap="small"):
+        if position > 1:
+            st.button("Back", key="cu_quiz_back", on_click=_back, width="content")
+        if picked is not None:
+            st.button(
+                "See your score" if last else "Next question",
+                key="cu_quiz_next",
+                on_click=_advance,
+                type="primary",
+                width="content",
+            )
 
-    st.html(
-        f'<div class="cu-card cu-card--{style.slug}">'
-        f'<p class="cu-status"><span class="cu-status__icon" aria-hidden="true">'
-        f"{style.icon}</span><span>{escape(style.word)}</span></p>"
-        f'<p class="cu-approval">{escape(mark)}</p>'
-        f'<p class="cu-reason">{escape(verdict.reasons[0] if verdict.reasons else "")}</p>'
-        f"</div>"
+
+def _share_text(correct: int, total: int) -> str:
+    return (
+        f"I scored {correct}/{total} on 'Can I use AI for this?', a quiz built "
+        f"from an AI Acceptable Use Policy (AIG-POL-001 {VERSION.replace('v1_', 'v1.')}). "
+        "Every answer cites the clause it comes from."
     )
-    render_clause_chips(verdict.clauses)
-    render_clause_drawer(verdict.clauses, VERSION)
-    render_basis_row(verdict.basis)
 
 
-def _render_score(order: list[int]) -> None:
-    """Progress from the first paint, so the page says how long it is.
+def _share_link(correct: int, total: int) -> str:
+    try:
+        base = (st.context.url or "").split("?")[0]
+    except Exception:  # noqa: BLE001 - no browser context, e.g. under AppTest
+        base = ""
+    return f"{base}?{SHARED_SCORE}={correct}&of={total}"
 
-    This used to render nothing until a question was answered, so the page
-    opened on question 1 with no sign that there were ten of them.
-    """
-    answers = st.session_state[ANSWERS_KEY]
-    answered = [n for n in order if n in answers]
-    remaining = len(order) - len(answered)
 
-    if not answered:
-        st.html(
-            f'<p class="cu-hint">{len(order)} questions. Pick an answer and the '
-            "clauses behind it open underneath.</p>"
-        )
-        return
-
-    by_number = {scenario.n: scenario for scenario in load_scenarios()}
-    score = sum(1 for n in answered if answers[n] is evaluate(by_number[n].inputs, VERSION).status)
+def _render_final(order: list[int]) -> None:
+    correct, _answered = _score(order)
+    total = len(order)
 
     st.markdown("## Your score")
-    tail = f"{remaining} still to answer." if remaining else "All answered."
+    st.html(f'<p class="cu-score">{correct} / {total}</p>')
+    st.progress(correct / total, text=f"{correct} of {total} right")
+
+    st.html('<p class="cu-label">Share it</p>')
+    st.code(_share_text(correct, total), language=None, wrap_lines=True)
+    st.code(_share_link(correct, total), language=None, wrap_lines=True)
+
+    st.button("Start again", key="cu_quiz_restart", on_click=_restart, type="primary")
+
+
+def _render_shared_score(total: int) -> None:
+    """A score that arrived in the URL belongs to whoever sent the link."""
+    raw = st.query_params.get(SHARED_SCORE)
+    if raw is None or st.session_state[ANSWERS_KEY]:
+        return
+    try:
+        theirs = int(raw)
+    except ValueError:
+        return
+    if not 0 <= theirs <= total:
+        return
     st.html(
-        f'<p class="cu-score">{score} / {len(answered)}</p><p class="cu-hint">{escape(tail)}</p>'
+        f'<p class="cu-hint">Someone scored <strong>{theirs}/{total}</strong> and '
+        "sent you this. The ten questions below are shuffled, so yours will not "
+        "be the same ten.</p>"
     )
-
-    if len(answered) == len(order):
-        st.html('<p class="cu-label">Share your score</p>')
-        st.code(
-            f"I scored {score}/{len(order)} on 'Can I use AI for this?', "
-            "a quiz built from an AI Acceptable Use Policy (AIG-POL-001 v1.5). "
-            "Every answer cites the clause it comes from.",
-            language=None,
-            wrap_lines=True,
-        )
-
-    st.button("Start again", key="cu_quiz_restart", on_click=_restart)
 
 
 def main() -> None:
@@ -152,14 +230,23 @@ def main() -> None:
     )
 
     order = _ensure_quiz()
-    by_number = {scenario.n: scenario for scenario in load_scenarios()}
+    by_number = _by_number()
 
     # The four options are the question. Defining them only on the verdict
     # card is no use here, where picking between them is the task.
     render_verdict_key()
-    _render_score(order)
-    for position, number in enumerate(order, start=1):
-        _render_question(position, by_number[number])
+    _render_shared_score(len(order))
+
+    position = st.session_state[AT_KEY]
+    if position >= len(order):
+        _render_final(order)
+    else:
+        _render_progress(order)
+        _render_question(
+            position + 1,
+            by_number[order[position]],
+            last=position == len(order) - 1,
+        )
 
     render_footer(VERSION)
 

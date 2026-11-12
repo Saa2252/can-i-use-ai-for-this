@@ -13,13 +13,19 @@ from app.components.footer import render_footer
 from app.components.shell import escape, inject_styles, page_header
 from app.components.tiers import render_tier_key
 from app.components.verdict_card import render_verdict
-from app.styles.tokens import style_for
-from engine.models import Activity, DataClass, Inputs, Tool
+from app.styles.tokens import STATUS_STYLES, style_for
+from engine.models import Activity, DataClass, Inputs, Status, Tool
 from engine.policy_parser import load_policy
 from engine.rules import evaluate
 
 VERSION = "v1_6"
 SELECTED = "cu_matrix_cell"
+
+#: The cell the page opens on. Confidential in a Tier B tool is the one people
+#: get wrong: it is blocked as described, and unlike the red cells it has a
+#: route. Opening on it means the page starts on a worked rule rather than on
+#: an instruction to go and tap something.
+OPENING_CELL = (DataClass.CONFIDENTIAL.value, Tool.TIER_B.value)
 
 GRID_TIERS: tuple[Tool, ...] = (Tool.TIER_A, Tool.TIER_B, Tool.TIER_C)
 
@@ -67,6 +73,39 @@ def policy_word(data_class: DataClass, tool: Tool) -> str:
     return words.get(data_class.value, ("", "", ""))[GRID_TIERS.index(tool)]
 
 
+def _render_cell_colours() -> None:
+    """Colour every cell by the verdict the engine gives it.
+
+    The grid is drawn with `st.button`, which carries no class of its own, so
+    the rules are generated against the `st-key-...` wrapper Streamlit emits
+    and grouped by status. Generated rather than written: a cell's colour
+    cannot disagree with the verdict in the panel underneath it.
+    """
+    by_slug: dict[str, list[str]] = {}
+    for data_class in DataClass:
+        for tool in GRID_TIERS:
+            slug = style_for(evaluate(cell_inputs(data_class, tool), VERSION).status).slug
+            selector = f".st-key-cu_cell_{data_class.value}_{tool.value} .stButton button"
+            by_slug.setdefault(slug, []).append(selector)
+
+    rules = "".join(
+        f"{','.join(selectors)}"
+        f"{{background:var(--{slug}-tint);border-color:var(--{slug});color:var(--text);}}"
+        for slug, selectors in by_slug.items()
+    )
+    st.html(f"<style>{rules}</style>")
+
+
+def _render_legend() -> None:
+    """The four statuses, in the tints the grid uses."""
+    chips = "".join(
+        f'<span class="cu-key cu-key--{STATUS_STYLES[status].slug}">'
+        f"{escape(STATUS_STYLES[status].icon)} {escape(STATUS_STYLES[status].word)}</span>"
+        for status in Status
+    )
+    st.html(f'<div class="cu-keyrow">{chips}</div>')
+
+
 def _render_grid() -> None:
     # The key puts `.st-key-cu_matrix` on the wrapper, which is what stops the
     # columns stacking at phone width (see app.css).
@@ -94,12 +133,9 @@ def _render_grid() -> None:
 
 
 def _render_selection() -> None:
-    chosen = st.session_state.get(SELECTED)
-    if not chosen:
-        st.html('<p class="cu-hint">Tap any cell for the rule behind it, and an example.</p>')
-        return
-
+    chosen = st.session_state.get(SELECTED, OPENING_CELL)
     data_class, tool = DataClass(chosen[0]), Tool(chosen[1])
+    st.html('<p class="cu-hint">Tap any cell for the rule behind it, and an example.</p>')
     st.markdown(f"## {data_class.value} data in a {TIER_HEADINGS[tool]} tool")
     st.html(
         f'<p class="cu-hint">7.1 says: <strong>{escape(policy_word(data_class, tool))}'
@@ -116,7 +152,9 @@ def main() -> None:
         "The 7.1 grid. Every cell is worked out by the same rules the Check page uses.",
     )
     render_tier_key(VERSION)
+    _render_cell_colours()
     _render_grid()
+    _render_legend()
     _render_selection()
     render_footer(VERSION)
 

@@ -27,6 +27,7 @@ from engine.models import (
     Tool,
     most_severe,
 )
+from engine.policy_parser import load_policy
 from engine.rules import evaluate
 
 VERSION = "v1_6"
@@ -50,6 +51,29 @@ PRESETS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("Invoice agent", "Reads invoices and pays suppliers", ("read", "pay")),
     ("Deploy bot", "Edits records and ships to production", ("read", "write", "production_change")),
 )
+
+#: The page opens on this one, so a reader meets a working agent and a real
+#: verdict rather than seven switches that are all off.
+OPENING_PRESET = "Support agent"
+OPENED_FLAG = "cu_agent_opened"
+
+#: B.3 scores five factors and takes the highest. Three of them follow from
+#: the switches on this page. "Effect on people" and "Audience" depend on what
+#: the agent is for, which this page never asks, so they are named as not
+#: scored rather than guessed at (BUILD_SPEC 0.1).
+SCORED = ("Data", "Autonomy", "Reversibility")
+UNSCORED = ("Effect on people", "Audience")
+LEVEL_NAMES = ("Low", "Medium", "High")
+LEVEL_SLUGS = ("low", "medium", "high")
+
+#: The actions 11.3 treats as irreversible, which is what sets the
+#: Reversibility factor. PAY and MESSAGE_EXTERNAL are the two with exceptions.
+IRREVERSIBLE = {
+    AgentAction.PAY,
+    AgentAction.DELETE,
+    AgentAction.PRODUCTION_CHANGE,
+    AgentAction.MESSAGE_EXTERNAL,
+}
 
 #: Calling other agents is a new use case rather than an action the engine
 #: scores, so it contributes these clauses directly (11.9, C.6.1).
@@ -92,6 +116,58 @@ def _consequence(action: AgentAction | None) -> str:
     word = style_for(verdict.status).word
     extra = APPROVAL_LABELS.get(verdict.approval_kind, "")
     return f"On its own: {word}{f' ({extra})' if extra else ''}."
+
+
+def _factor_levels(enabled: list[tuple[str, AgentAction | None, str]]) -> dict[str, int]:
+    """Each scored B.3 factor as a column index: 0 Low, 1 Medium, 2 High."""
+    actions = {action for _k, action, _l in enabled if action}
+
+    # Every question on this page is asked at Confidential (see _inputs_for),
+    # which B.3 puts in the Medium column of the Data row.
+    levels = {"Data": 1}
+
+    if actions & IRREVERSIBLE:
+        levels["Reversibility"] = 2
+    elif AgentAction.WRITE in actions:
+        levels["Reversibility"] = 1
+    else:
+        levels["Reversibility"] = 0
+
+    # An agent that can only read produces output a human acts on. One that
+    # can change or send anything is acting within a pre-approved scope.
+    levels["Autonomy"] = 2 if actions - {AgentAction.READ} else 0
+    return levels
+
+
+def _b3_cell(factor: str, level: int) -> str:
+    """The policy's own words for one cell of the B.3 rubric."""
+    for row in load_policy(VERSION).table("B.3").rows:
+        if row[0] == factor:
+            return row[level + 1]
+    return ""
+
+
+def _render_risk_meter(enabled: list[tuple[str, AgentAction | None, str]]) -> None:
+    """Low / Medium / High from B.3, and the factor that set it."""
+    levels = _factor_levels(enabled)
+    level = max(levels.values())
+    driver = next(f for f in SCORED if levels[f] == level)
+
+    steps = "".join(
+        f'<span class="cu-meter__step'
+        f'{f" cu-meter__step--on-{LEVEL_SLUGS[index]}" if index == level else ""}">'
+        f"{escape(name)}</span>"
+        for index, name in enumerate(LEVEL_NAMES)
+    )
+    st.html(
+        f'<p class="cu-label">Impact level (B.3)</p>'
+        f'<div class="cu-meter">{steps}</div>'
+        f'<p class="cu-hint">The highest factor sets the level. Here that is '
+        f"<strong>{escape(driver.lower())}</strong>: "
+        f"{escape(_b3_cell(driver, level).lower())}. "
+        f"{escape(' and '.join(UNSCORED))} depend on what the agent is for, "
+        f"so this page does not score them.</p>"
+    )
 
 
 def _render_presets() -> None:
@@ -149,6 +225,8 @@ def _render_rollup(enabled: list[tuple[str, AgentAction | None, str]]) -> None:
             "needs the standing controls below, and it needs approval the moment "
             "it can change anything.</p>"
         )
+
+    _render_risk_meter(enabled)
 
     controls: list[str] = []
     clauses: list[str] = []
@@ -247,6 +325,10 @@ def main() -> None:
         "What controls does this agent need?",
         "Switch on what it may do, and the answer changes as you go.",
     )
+    if not st.session_state.get(OPENED_FLAG):
+        st.session_state[OPENED_FLAG] = True
+        _load_preset(next(keys for label, _d, keys in PRESETS if label == OPENING_PRESET))
+
     _render_presets()
     _render_toggles()
     enabled = _enabled()

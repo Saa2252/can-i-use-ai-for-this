@@ -18,6 +18,9 @@ from engine.scenarios import QUIZ_LOCKED, load_scenarios
 ENTRYPOINT = str(Path(__file__).resolve().parent.parent / "app" / "main.py")
 TIMEOUT = 40
 
+#: The query parameter a shared quiz score travels in.
+QUIZ_SHARE_PARAM = "score"
+
 PAGES = {
     "check": "views/1_check.py",
     "limits": "views/7_limits.py",
@@ -168,9 +171,11 @@ def test_quiz_defines_the_four_answers_it_asks_you_to_choose_between():
 
 
 def test_quiz_says_how_many_questions_before_anything_is_answered():
-    """It used to render nothing here, so the page opened with no sense of length."""
-    page = body(open_page("quiz"))
-    assert "10 questions" in page
+    """It used to render nothing here, so the page opened with no sense of
+    length. One question at a time makes that worse, not better, unless the
+    bar says how many there are."""
+    at = open_page("quiz")
+    assert any("of 10" in bar.text for bar in at.progress)
 
 
 def test_check_says_where_the_data_classes_are_defined():
@@ -269,8 +274,13 @@ def test_switching_on_payments_shows_the_required_controls():
 
 def test_agent_builder_shows_both_irreversible_exceptions_and_their_conditions():
     at = open_page("agents")
-    # The heading is the expander's label, which `body` does not collect.
-    assert any("two exceptions" in e.label for e in at.expander)
+    # The heading is the expander's label, which `body` does not collect. It
+    # is named for whichever exception the loaded agent engages, and generic
+    # when none is, so either wording counts here; the point of this test is
+    # that both exceptions and all of their conditions are on the page.
+    assert any(
+        "two exceptions" in e.label or "without a human each time" in e.label for e in at.expander
+    )
     page = body(at)
     assert "The payee is on the allowlist" in page
     assert "The recipient is on the allowlist" in page
@@ -279,13 +289,21 @@ def test_agent_builder_shows_both_irreversible_exceptions_and_their_conditions()
 
 
 def test_the_exceptions_panel_names_the_capability_that_is_switched_on():
-    """Generic by default, and named after the capability once it applies.
+    """Named after the capability that engages it, generic when none does.
 
     Always-open, this block was most of the page, and a reader met the
     payment allowlist rules before switching payments on. AppTest does not
     expose an expander's open state, so the heading is what is checked.
     """
     at = open_page("agents")
+    # The page opens on the Support agent, which sends messages outside the
+    # organization, so the panel is already named for that exception.
+    opening = next(
+        e for e in at.expander if "exception" in e.label.lower() or "message" in e.label.lower()
+    )
+    assert "without a human each time" in opening.label
+
+    at.button(key="cu_preset_clear").click().run()
     generic = next(e for e in at.expander if "exception" in e.label.lower())
     assert "two exceptions" in generic.label
 
@@ -294,6 +312,49 @@ def test_the_exceptions_panel_names_the_capability_that_is_switched_on():
     assert "without a human each time" in specific.label
     # and it still carries the conditions, not just a new heading
     assert "The payment is within the per-action and daily caps" in body(at)
+
+
+def test_the_agents_page_opens_on_a_working_agent() -> None:
+    """Seven switches all off is an empty state wearing an answer's clothes."""
+    at = open_page("agents")
+    assert at.session_state["cu_cap_read"] is True
+    assert at.session_state["cu_cap_message_external"] is True
+    assert at.session_state["cu_cap_pay"] is False
+
+
+def _meter_sentence(at: AppTest) -> str:
+    """The one line the risk meter writes, so assertions cannot match the
+    word "data" somewhere else on a page full of data rules."""
+    return next(h.value for h in at.html if "highest factor sets the level" in h.value)
+
+
+def test_the_risk_meter_quotes_b3_and_names_the_factor_that_set_the_level() -> None:
+    """The level has to be traceable to a row of the rubric, not asserted.
+
+    This does not hardcode which factor wins. It checks that whatever the
+    meter names is a real B.3 row, and that the words beside it are that
+    row's own cell, so a hand-written gloss would fail.
+    """
+    at = open_page("agents")
+    assert "Impact level (B.3)" in body(at)
+    sentence = _meter_sentence(at)
+
+    rows = {
+        row[0].lower(): [cell.lower() for cell in row[1:]]
+        for row in load_policy("v1_6").table("B.3").rows
+    }
+    named = [factor for factor in rows if factor in sentence]
+    assert named, f"the meter names no B.3 factor: {sentence}"
+    assert any(cell in sentence for factor in named for cell in rows[factor]), (
+        f"the meter names a factor but not that row's own words: {sentence}"
+    )
+
+
+def test_the_risk_meter_does_not_score_the_factors_the_page_never_asks() -> None:
+    """B.3 has five factors; two of them depend on what the agent is for."""
+    sentence = _meter_sentence(open_page("agents")).lower()
+    assert "effect on people and audience" in sentence
+    assert "this page does not score them" in sentence
 
 
 def test_agent_builder_contrasts_in_allowance_with_out_of_allowance():
@@ -321,20 +382,52 @@ def test_calling_other_agents_cites_11_9_and_c_6_1():
 # --------------------------------------------------------------------------
 
 
+def walk_quiz(at: AppTest, answer: Status = Status.ALLOWED) -> list[dict[str, str]]:
+    """Answer all ten questions, returning what each step put on screen.
+
+    The quiz shows one question at a time, so a test that wants to see every
+    question has to play it. Each entry is the heading shown before answering
+    and the page as it stood after.
+    """
+    steps: list[dict[str, str]] = []
+    for _ in range(10):
+        heading = next(m.value for m in at.markdown if m.value.startswith("## "))
+        asked = body(at)
+        at.segmented_control[0].set_value(answer).run()
+        steps.append({"heading": heading, "asked": asked, "revealed": body(at)})
+        at.button(key="cu_quiz_next").click().run()
+    return steps
+
+
 def test_quiz_is_ten_unique_questions_including_the_four_locked_ones():
-    at = open_page("quiz")
-    headings = [m.value for m in at.markdown if m.value.startswith("## ") and m.value[3].isdigit()]
-    assert len(headings) == 10
+    steps = walk_quiz(open_page("quiz"))
+    assert len(steps) == 10
 
     titles = {scenario.title: scenario.n for scenario in load_scenarios()}
     shown = set()
-    for heading in headings:
-        title = heading.split(". ", 1)[1]
+    for step in steps:
+        title = step["heading"].split(". ", 1)[1]
         assert title in titles, f"unknown scenario title rendered: {title!r}"
         shown.add(titles[title])
 
     assert len(shown) == 10, "the quiz must not repeat a scenario"
     assert set(QUIZ_LOCKED) <= shown, "scenarios 4, 8, 9 and 14 must always appear"
+
+
+def test_the_question_does_not_name_the_data_class_before_it_is_answered():
+    """Naming the class and the tier turns the question into a Matrix lookup.
+
+    The breakdown is not hidden, it is moved: it belongs to the explanation,
+    not to the question.
+    """
+    steps = walk_quiz(open_page("quiz"))
+    for step in steps:
+        assert " data · in a " not in step["asked"], (
+            f"the input breakdown is visible before answering: {step['heading']}"
+        )
+        assert " data · in a " in step["revealed"], (
+            f"the breakdown never appears in the reveal: {step['heading']}"
+        )
 
 
 def test_no_two_scenarios_describe_identically():
@@ -364,47 +457,84 @@ def test_description_states_what_decides_the_interesting_pairs():
 
 
 def test_rendered_quiz_questions_are_all_distinct():
-    at = open_page("quiz")
-    descriptions = [
+    reveals = [step["revealed"] for step in walk_quiz(open_page("quiz"))]
+    breakdowns = [
         line
-        for line in body(at).splitlines()
+        for page in reveals
+        for line in page.splitlines()
         if 'class="cu-hint"' in line and " data · in a " in line
     ]
-    assert len(descriptions) == 10
-    assert len(set(descriptions)) == 10, "two questions render identically"
+    assert len(breakdowns) == 10
+    assert len(set(breakdowns)) == 10, "two questions render identically"
 
 
 def test_agent_message_questions_state_the_allowlist_condition():
-    at = open_page("quiz")
-    page = body(at)
-    assert "recipient is on the allowlist" in page
-    assert "recipient is not on the allowlist" in page
+    """8 and 9 are both locked in, and differ only by this condition."""
+    reveals = "\n".join(step["revealed"] for step in walk_quiz(open_page("quiz")))
+    assert "recipient is on the allowlist" in reveals
+    assert "recipient is not on the allowlist" in reveals
 
 
-def test_quiz_offers_the_four_statuses_for_each_question():
+def test_exactly_one_question_is_on_screen_at_a_time():
     at = open_page("quiz")
-    assert len(at.segmented_control) == 10
+    for _ in range(10):
+        assert len(at.segmented_control) == 1
+        assert len(at.segmented_control[0].options) == 4
+        at.segmented_control[0].set_value(Status.ALLOWED).run()
+        at.button(key="cu_quiz_next").click().run()
 
 
 def test_answering_reveals_the_clauses_and_marks_the_answer():
     at = open_page("quiz")
-    control = at.segmented_control[0]
-    control.set_value(Status.ALLOWED).run()
+    at.segmented_control[0].set_value(Status.ALLOWED).run()
     page = body(at)
     assert ("✓ Correct" in page) or ("✕ Not quite" in page)
+    # The score is the end of the quiz, not a running total beside question 1.
+    assert "Your score" not in page
+
+
+def test_progress_says_where_you_are_before_anything_is_answered():
+    at = open_page("quiz")
+    assert any("Question 1 of 10" in bar.text for bar in at.progress)
+
+
+def test_the_score_and_a_share_link_arrive_only_at_the_end():
+    at = open_page("quiz")
+    walk_quiz(at)
+    page = body(at)
     assert "Your score" in page
-
-
-def test_score_counts_only_answered_questions():
-    at = open_page("quiz")
-    at.segmented_control[0].set_value(Status.ALLOWED).run()
-    assert "/ 1" in body(at)
-
-
-def test_restart_button_is_offered():
-    at = open_page("quiz")
-    at.segmented_control[0].set_value(Status.ALLOWED).run()
+    assert "I scored" in page
+    assert f"{QUIZ_SHARE_PARAM}=" in page
     assert "cu_quiz_restart" in {button.key for button in at.button}
+
+
+def _open_quiz_with(**params: str) -> AppTest:
+    """The quiz with query parameters on it.
+
+    They are set after the first run because that run lands on the Check
+    page, which writes its own inputs over the whole query string. A visitor
+    opening /quiz?score=7 never hits that, since st.navigation runs only the
+    page the URL names.
+    """
+    at = AppTest.from_file(ENTRYPOINT, default_timeout=TIMEOUT)
+    at.run()
+    at.switch_page(PAGES["quiz"])
+    for key, value in params.items():
+        at.query_params[key] = value
+    at.run()
+    return at
+
+
+def test_a_shared_score_in_the_url_is_shown_as_someone_else_s():
+    page = body(_open_quiz_with(**{QUIZ_SHARE_PARAM: "7"}))
+    assert "Someone scored" in page and "7/10" in page
+
+
+def test_a_nonsense_shared_score_is_ignored_rather_than_shown():
+    for raw in ("banana", "-1", "11"):
+        at = _open_quiz_with(**{QUIZ_SHARE_PARAM: raw})
+        assert not at.exception, raw
+        assert "Someone scored" not in body(at), raw
 
 
 # --------------------------------------------------------------------------

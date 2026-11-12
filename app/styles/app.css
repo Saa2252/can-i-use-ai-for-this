@@ -312,6 +312,57 @@ h3 {
   min-height: 2.5rem;
 }
 
+/* The B.3 risk meter on the Agents page. Three steps, the reached one filled,
+   so the level is readable without colour alone. */
+.cu-meter {
+  display: flex;
+  gap: 0.3rem;
+  margin: 0.2rem 0 0.4rem;
+}
+
+.cu-meter__step {
+  flex: 1;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--muted);
+  background: var(--surface);
+}
+
+.cu-meter__step--on-low { background: var(--allowed-tint); border-color: var(--allowed); color: var(--text); }
+.cu-meter__step--on-medium { background: var(--needs-approval-tint); border-color: var(--needs-approval); color: var(--text); }
+.cu-meter__step--on-high { background: var(--prohibited-tint); border-color: var(--prohibited); color: var(--text); }
+
+/* The grid's legend. Four chips, the same four tints the cells use, so the
+   key and the grid cannot drift apart. */
+.cu-keyrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0 0 0.9rem;
+}
+
+.cu-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.18rem 0.5rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.cu-key--allowed { background: var(--allowed-tint); border-color: var(--allowed); }
+.cu-key--needs-approval { background: var(--needs-approval-tint); border-color: var(--needs-approval); }
+.cu-key--not-permitted { background: var(--not-permitted-tint); border-color: var(--not-permitted); }
+.cu-key--prohibited { background: var(--prohibited-tint); border-color: var(--prohibited); }
+
 .cu-grid-head {
   margin: 0 0 0.2rem;
   font-size: 0.75rem;

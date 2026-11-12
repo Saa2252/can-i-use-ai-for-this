@@ -288,3 +288,29 @@ def test_disputed_points_only_cite_real_clauses():
 
     for clause_id in re.findall(r'"(\d{1,2}\.\d{1,2}|[BC]\.\d{1,2}(?:\.\d{1,2})?)"', source):
         assert clause_id in policy.clauses
+
+
+def test_the_notetaker_flip_is_told_first() -> None:
+    """The only flip that takes something away from someone already doing it.
+
+    Ordered by a rule, not by hand: a verdict that was Allowed and no longer
+    is comes before the rest, so the list stays right if a ruleset changes.
+    """
+    at = open_review()
+    page = body(at)
+    titles = [c.scenario.title for c in changed_verdicts("v1_0", "v1_5")]
+    positions = {title: page.find(title) for title in titles if page.find(title) >= 0}
+    assert positions, "no flip titles rendered"
+    first = min(positions, key=positions.get)
+    assert "Notetaker" in first, f"the list opens on {first!r}"
+
+
+def test_every_flip_card_cites_the_clauses_that_moved() -> None:
+    """The old card said "the answer itself changed" and nothing checkable."""
+    page = body(open_review())
+    assert "the answer itself changed" not in page
+    for change in changed_verdicts("v1_0", "v1_5"):
+        if not change.added_clauses:
+            continue
+        cites = ", ".join(change.added_clauses)
+        assert cites in page, f"{change.scenario.title} does not cite {cites}"
