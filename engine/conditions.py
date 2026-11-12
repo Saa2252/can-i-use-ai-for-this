@@ -17,6 +17,7 @@ A node is either:
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 COMBINATORS = ("all_of", "any_of", "none_of")
@@ -60,6 +61,38 @@ def matches(node: Any, ctx: dict[str, Any], *, path: str = "when") -> bool:
 def _contains(allowed: list[Any], value: Any) -> bool:
     """Membership that does not let True == 1 or False == 0 slip through."""
     return any(type(a) is type(value) and a == value for a in allowed)
+
+
+@dataclass(frozen=True)
+class Condition:
+    """One leaf of a `when:` tree: a field and the values it accepts."""
+
+    field: str
+    accepted: tuple[Any, ...]
+
+
+def leaves(node: Any) -> list[Condition]:
+    """Every field condition in a tree, in reading order."""
+    if not isinstance(node, dict):
+        return []
+    combinator = next((name for name in COMBINATORS if name in node), None)
+    if combinator is not None:
+        return [leaf for branch in node[combinator] for leaf in leaves(branch)]
+    return [
+        Condition(field, tuple(accepted if isinstance(accepted, list) else [accepted]))
+        for field, accepted in node.items()
+    ]
+
+
+def specificity(node: Any) -> int:
+    """How many input facts a condition pins down.
+
+    A rule naming the data class, the tier and the activity is talking about
+    this question. A rule naming nothing applies to every question. The engine
+    uses this to decide which of the rules that decided a verdict should lead
+    the card: the specific sentence is the one worth reading first.
+    """
+    return len(leaves(node))
 
 
 def validate(node: Any, known_fields: set[str], *, path: str = "when") -> None:

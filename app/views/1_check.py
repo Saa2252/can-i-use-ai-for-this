@@ -123,7 +123,15 @@ def main() -> None:
             render_waiting(missing_prompt(missing_required()))
         else:
             verdict = evaluate(inputs, VERSION)
-            render_verdict(verdict, version=VERSION, share_url=share_url(visible))
+            render_verdict(
+                verdict,
+                version=VERSION,
+                share_url=share_url(visible),
+                inputs=inputs,
+                # Only what is on screen: offering to change a control the
+                # visitor cannot see is a dead end dressed as a suggestion.
+                changeable=visible,
+            )
 
     render_data_class_key(VERSION)
     render_tier_key(VERSION)

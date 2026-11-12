@@ -14,12 +14,36 @@ from engine.models import Clause
 from engine.rules import resolve_clauses
 
 
-def render_clause_chips(clause_ids: list[str]) -> None:
+def render_clause_chips(clause_ids: list[str], *, label: str = "Clauses") -> None:
     """The visible citation row."""
     if not clause_ids:
         return
     chips = "".join(f'<li class="cu-chip">{escape(cid)}</li>' for cid in clause_ids)
-    st.html(f'<p class="cu-label">Clauses</p><ul class="cu-chips">{chips}</ul>')
+    st.html(f'<p class="cu-label">{escape(label)}</p><ul class="cu-chips">{chips}</ul>')
+
+
+def render_citations(decisive: list[str], every: list[str], version: str) -> None:
+    """The clauses that decided it, with the rest a click away.
+
+    Seven chips of equal weight hide the one doing the work. The chip row is
+    now the rules that fired at the verdict's own status; everything else
+    fired too and is still one click away, where it reads as context rather
+    than as the answer.
+    """
+    lead = decisive or every
+    render_clause_chips(lead, label="What decided it")
+
+    rest = [cid for cid in every if cid not in set(lead)]
+    if rest:
+        st.html(
+            f'<p class="cu-meta">{len(rest)} more clause'
+            f"{'s' if len(rest) != 1 else ''} also apply, below.</p>"
+        )
+    render_clause_drawer(
+        every,
+        version,
+        label=f"All {len(every)} clause{'s' if len(every) != 1 else ''} in full",
+    )
 
 
 def render_clause_drawer(

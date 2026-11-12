@@ -312,6 +312,43 @@ h3 {
   min-height: 2.5rem;
 }
 
+/* "What if" chips. Each is a sentence plus the answer it would get, so the
+   chip carries its own consequence rather than needing a legend. */
+.cu-whatifs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.2rem 0 0.3rem;
+}
+
+.cu-whatif {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  color: var(--text);
+  background: var(--surface);
+}
+
+.cu-whatif__to {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+}
+
+.cu-whatif--allowed { border-color: var(--allowed); }
+.cu-whatif--allowed .cu-whatif__to { background: var(--allowed-tint); color: var(--text); }
+.cu-whatif--needs-approval { border-color: var(--needs-approval); }
+.cu-whatif--needs-approval .cu-whatif__to { background: var(--needs-approval-tint); color: var(--text); }
+.cu-whatif--not-permitted { border-color: var(--not-permitted); }
+.cu-whatif--not-permitted .cu-whatif__to { background: var(--not-permitted-tint); color: var(--text); }
+.cu-whatif--prohibited { border-color: var(--prohibited); }
+.cu-whatif--prohibited .cu-whatif__to { background: var(--prohibited-tint); color: var(--text); }
+
 /* The B.3 risk meter on the Agents page. Three steps, the reached one filled,
    so the level is readable without colour alone. */
 .cu-meter {

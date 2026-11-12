@@ -12,7 +12,7 @@ from pathlib import Path
 
 import yaml
 
-from engine.conditions import matches, validate
+from engine.conditions import matches, specificity, validate
 from engine.models import (
     ApprovalKind,
     Basis,
@@ -203,12 +203,20 @@ def evaluate(inputs: Inputs, version: str = "v1_5") -> Verdict:
         else ApprovalKind.NONE
     )
 
-    reasons = _dedupe(rule.reason for rule in decisive + supporting)
+    # The specific rule leads. Several rules can decide one verdict, and the
+    # one naming the most inputs is the one about *this* question; a general
+    # note that fires on everything is true without being the answer.
+    leading = sorted(decisive, key=lambda rule: -specificity(rule.when))
+
+    reasons = _dedupe(rule.reason for rule in leading + supporting)
     requirements = _dedupe(
         requirement for rule in decisive + supporting for requirement in rule.requirements
     )
-    clause_ids = _dedupe(clause_id for rule in decisive + supporting for clause_id in rule.clauses)
+    clause_ids = _dedupe(clause_id for rule in leading + supporting for clause_id in rule.clauses)
     clause_ids = [clause.id for clause in resolve_clauses(clause_ids, version)]
+
+    decisive_ids = _dedupe(clause_id for rule in leading for clause_id in rule.clauses)
+    decisive_ids = [clause.id for clause in resolve_clauses(decisive_ids, version)]
 
     try_instead = next(
         (rule.try_instead for rule in decisive if rule.try_instead),
@@ -224,6 +232,7 @@ def evaluate(inputs: Inputs, version: str = "v1_5") -> Verdict:
         try_instead=try_instead,
         basis=basis_for(clause_ids),
         fired_rules=[rule.id for rule in fired],
+        decisive_clauses=decisive_ids,
     )
 
 

@@ -487,3 +487,45 @@ def test_every_registered_page_script_exists(page: str) -> None:
     """Catches a rename that updated the folder but not the registration."""
     script = Path(ENTRYPOINT).resolve().parent / page
     assert script.is_file(), f"app/main.py registers {page}, which is not on disk"
+
+
+# --------------------------------------------------------------------------
+# The verdict card explains itself (Phase 3)
+# --------------------------------------------------------------------------
+
+
+def test_the_chip_row_is_the_clauses_that_decided_it() -> None:
+    """Seven chips of equal weight hide the one doing the work."""
+    at = run_app(**params_for(scenario(2).inputs))
+    verdict = evaluate(scenario(2).inputs, "v1_6")
+    page = body(at)
+
+    assert "What decided it" in page
+    assert len(verdict.decisive_clauses) < len(verdict.clauses), (
+        "this scenario is a poor test if everything is decisive"
+    )
+    # The drawer's heading is an expander label, which `body` does not collect.
+    assert any(f"All {len(verdict.clauses)} clauses in full" in e.label for e in at.expander)
+    assert f"{len(verdict.clauses) - len(verdict.decisive_clauses)} more clauses" in page
+
+
+def test_what_if_chips_offer_a_way_out_of_a_prohibited_answer() -> None:
+    at = run_app(**params_for(scenario(2).inputs))
+    page = body(at)
+    assert "What if" in page
+    # Scenario 2 is the client contract in a personal account: both the data
+    # class and the tool are one change away from an answer that is not no.
+    assert STATUS_STYLES[Status.ALLOWED].word in page
+
+
+def test_the_card_does_not_ask_why_it_is_not_stricter_than_prohibited() -> None:
+    at = run_app(**params_for(scenario(2).inputs))
+    assert evaluate(scenario(2).inputs, "v1_6").status is Status.PROHIBITED
+    assert not any("Why is this not" in e.label for e in at.expander)
+
+
+def test_an_allowed_answer_says_what_would_have_made_it_stricter() -> None:
+    at = run_app(data_class="Internal", data_kind="none", tool="A", activity="drafting")
+    assert any("Why is this not" in e.label for e in at.expander), (
+        "an answer with stricter rules above it should say what they wanted"
+    )

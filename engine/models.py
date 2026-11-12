@@ -347,3 +347,9 @@ class Verdict(BaseModel):
     try_instead: str | None = None
     basis: list[Basis] = Field(default_factory=list)
     fired_rules: list[str] = Field(default_factory=list)
+
+    #: The clauses of the rules that fired at this verdict's own status: the
+    #: ones the answer rests on. `clauses` holds these and the supporting ones
+    #: together, which is right for a drawer and wrong for a row of chips,
+    #: where seven equal-looking chips hide the one doing the work.
+    decisive_clauses: list[str] = Field(default_factory=list)
