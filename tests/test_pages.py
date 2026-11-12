@@ -19,12 +19,12 @@ ENTRYPOINT = str(Path(__file__).resolve().parent.parent / "app" / "main.py")
 TIMEOUT = 40
 
 PAGES = {
-    "check": "pages/1_check.py",
-    "limits": "pages/7_limits.py",
-    "matrix": "pages/2_matrix.py",
-    "agents": "pages/3_agent_builder.py",
-    "quiz": "pages/4_scenarios.py",
-    "policy": "pages/6_policy.py",
+    "check": "views/1_check.py",
+    "limits": "views/7_limits.py",
+    "matrix": "views/2_matrix.py",
+    "agents": "views/3_agent_builder.py",
+    "quiz": "views/4_scenarios.py",
+    "policy": "views/6_policy.py",
 }
 
 
@@ -225,7 +225,7 @@ def test_limits_page_reports_the_real_verification_dates():
 
 def test_every_matrix_cell_has_an_example():
     """All 15 cells, so no cell can open onto an empty detail panel."""
-    source = (Path(__file__).resolve().parent.parent / "app" / "pages" / "2_matrix.py").read_text(
+    source = (Path(__file__).resolve().parent.parent / "app" / "views" / "2_matrix.py").read_text(
         encoding="utf-8"
     )
     for data_class in DataClass:

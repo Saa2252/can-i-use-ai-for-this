@@ -242,6 +242,15 @@ h3 {
   color: var(--accent);
 }
 
+/* A named limit on the Limits page. It is a sentence, so it must not borrow
+   the monospace clause-id style, which is for ids like 7.1. */
+.cu-limit {
+  margin: 0.9rem 0 0.1rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
 .cu-clause__where {
   font-size: 0.75rem;
   color: var(--muted);

@@ -119,7 +119,7 @@ def test_clause_ids_written_in_app_code_exist_in_the_current_policy():
 
 def test_the_app_code_scan_actually_finds_clause_ids():
     """Guard: a regex that matched nothing would make the test above vacuous."""
-    builder = (PROJECT_ROOT / "app" / "pages" / "3_agent_builder.py").read_text(encoding="utf-8")
+    builder = (PROJECT_ROOT / "app" / "views" / "3_agent_builder.py").read_text(encoding="utf-8")
     assert {"11.9", "C.6.1"} <= set(_CLAUSE_LITERAL.findall(builder))
 
 

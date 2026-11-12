@@ -426,3 +426,32 @@ def test_a_cleared_input_is_left_out_of_the_share_link() -> None:
 
     assert "tool" not in at.query_params
     assert at.query_params.get("data_class") is not None
+
+
+def test_no_pages_directory_sits_beside_the_entry_script() -> None:
+    """A `pages/` folder next to the entry script silently disables it.
+
+    Streamlit sets `PagesManager.uses_pages_directory` from whether that
+    folder exists, and when it does, the script runner calls `_mpa_v1(...)`
+    *in lieu of* the main script. The sys.path bootstrap at the top of
+    `app/main.py` never runs, and every page's `import app...` raises
+    ModuleNotFoundError.
+
+    It hides well: the first visitor to the root runs main.py as the v1 home
+    page, which calls `st.navigation` and flips the process to v2 for good.
+    Only a deep link opened as the first request after a cold start fails —
+    and then keeps failing for everyone until someone loads the root.
+    """
+    beside = Path(ENTRYPOINT).resolve().parent / "pages"
+    assert not beside.exists(), (
+        f"{beside} exists. Streamlit will run that folder's scripts instead "
+        f"of app/main.py on a cold start, skipping the sys.path bootstrap. "
+        f"The page scripts live in views/ for this reason."
+    )
+
+
+@pytest.mark.parametrize("page", ALL_PAGES)
+def test_every_registered_page_script_exists(page: str) -> None:
+    """Catches a rename that updated the folder but not the registration."""
+    script = Path(ENTRYPOINT).resolve().parent / page
+    assert script.is_file(), f"app/main.py registers {page}, which is not on disk"

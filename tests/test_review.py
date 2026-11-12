@@ -29,7 +29,7 @@ ENTRYPOINT = str(Path(__file__).resolve().parent.parent / "app" / "main.py")
 def open_review() -> AppTest:
     at = AppTest.from_file(ENTRYPOINT, default_timeout=60)
     at.run()
-    at.switch_page("pages/5_review.py")
+    at.switch_page("views/5_review.py")
     at.run()
     return at
 
@@ -278,9 +278,9 @@ def test_disputed_points_give_both_readings_and_say_what_the_record_is():
 
 
 def test_disputed_points_only_cite_real_clauses():
-    import app.pages  # noqa: F401
+    import app.views  # noqa: F401
 
-    source = (Path(__file__).resolve().parent.parent / "app" / "pages" / "5_review.py").read_text(
+    source = (Path(__file__).resolve().parent.parent / "app" / "views" / "5_review.py").read_text(
         encoding="utf-8"
     )
     policy = load_policy("v1_5")

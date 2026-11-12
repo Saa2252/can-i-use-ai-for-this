@@ -164,7 +164,7 @@ Nothing needs a secret or an API key, because there is no backend.
 ## Layout
 
 ```
-app/        Streamlit UI: main.py, pages/, components/, styles/
+app/        Streamlit UI: main.py, views/, components/, styles/
 engine/     Parser, models, rules engine, and the rules as YAML
 policy/     The policy markdown: v1.0, v1.4 and v1.5
 tests/      Parser, rules, clause integrity, backing, pages, AppTest smoke
