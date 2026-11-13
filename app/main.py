@@ -23,6 +23,7 @@ in `sys.modules` for the life of the process.
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -70,19 +71,26 @@ def reload_if_source_changed(root: Path = PROJECT_ROOT) -> str:
     the modules it describes and cannot outlive them. When it matches, this
     costs one `stat` per file and changes nothing.
 
-    Nothing is dropped the first time a process gets here, only recorded. A
-    process that has just started already holds the current files, so there
-    is nothing stale to clear, and pulling modules out from under whatever
-    imported them first is a real cost to pay for no gain. Only a
-    fingerprint that has *changed* means a deploy landed under a process
-    that was already running, which is the one case this exists for.
+    A package carrying *no* fingerprint counts as stale, which is the case
+    this got wrong at first. The deploy that introduces this guard lands
+    under a process that imported everything before the guard existed:
+    exactly the process that needs clearing, and the only one that can
+    never have a stamp. Treating it as fresh left the app broken and the
+    guard congratulating itself. On a genuinely cold process the test costs
+    nothing, because no module of ours has been imported yet and the loop
+    deletes nothing.
+
+    `CU_RELOAD_GUARD=off` disables the purge. A test session imports our
+    modules before it ever drives this script, and dropping them mid-session
+    would pull the engine out from under every test holding a class object.
+    The subprocess test in tests/test_reload_guard.py covers the real path.
     """
     fingerprint = source_fingerprint(root)
 
     engine = sys.modules.get("engine")
     seen = getattr(engine, "__source_fingerprint__", None) if engine is not None else None
 
-    if seen != fingerprint and seen is not None:
+    if seen != fingerprint and os.environ.get("CU_RELOAD_GUARD") != "off":
         for name in [
             name
             for name in sys.modules

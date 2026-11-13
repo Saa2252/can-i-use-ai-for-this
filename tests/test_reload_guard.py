@@ -14,12 +14,11 @@ test session would pull the engine out from under every other test.
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import textwrap
 from pathlib import Path
-
-import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 MAIN = PROJECT_ROOT / "app" / "main.py"
@@ -103,7 +102,7 @@ def test_the_real_project_has_a_fingerprint():
 # --------------------------------------------------------------------------
 
 SCRIPT = textwrap.dedent(
-    """
+    r"""
     import sys
     from pathlib import Path
 
@@ -121,25 +120,30 @@ SCRIPT = textwrap.dedent(
 
     assert engine.thing.VALUE == 1, engine.thing.VALUE
 
-    # First sight records the build and drops nothing: a process that has
-    # just started already holds the current files.
+    # A package with no fingerprint is stale, not fresh. This is the deploy
+    # that introduces the guard: the process imported everything before it
+    # existed, so it is the one process that can never carry a stamp and the
+    # one that most needs clearing.
     ns["reload_if_source_changed"](sandbox)
-    assert "engine.thing" in sys.modules, "first sight must not purge"
+    assert "engine.thing" not in sys.modules, "an unstamped package must be treated as stale"
+    assert "json" in sys.modules, "nothing outside our packages may be touched"
     first = sys.modules["engine"].__source_fingerprint__
 
-    # Nothing changed: a rerun must not reload the world.
+    import engine.thing
+    assert engine.thing.VALUE == 1
+
+    # Nothing has changed since: a rerun must not reload the world.
     ns["reload_if_source_changed"](sandbox)
     assert "engine.thing" in sys.modules, "an unchanged build must not purge"
 
     # Now a deploy lands under the running process.
     target = sandbox / "engine" / "thing.py"
-    target.write_text("VALUE = 2\\n")
+    target.write_text("VALUE = 2\n")
     import os
     os.utime(target, (0, float(first) + 10))
 
     ns["reload_if_source_changed"](sandbox)
     assert "engine.thing" not in sys.modules, "a changed build must purge our modules"
-    assert "json" in sys.modules, "nothing outside our packages may be touched"
     assert sys.modules["engine"].__source_fingerprint__ != first
 
     import engine.thing as healed
@@ -149,24 +153,74 @@ SCRIPT = textwrap.dedent(
     """
 )
 
+OFF_SCRIPT = textwrap.dedent(
+    r"""
+    import sys
+    from pathlib import Path
 
-@pytest.mark.parametrize("run", [1])
-def test_a_deploy_under_a_running_process_heals_itself(tmp_path: Path, run: int):
-    """The whole point, end to end: old module imported, files replaced, the
-    guard runs, and the next import sees the new code."""
+    project, sandbox = Path(sys.argv[1]), Path(sys.argv[2])
+    sys.path.insert(0, str(project))
+    sys.path.insert(0, str(sandbox))
+
+    source = (project / "app" / "main.py").read_text()
+    prefix = source.split("BUILD = reload_if_source_changed()")[0]
+    ns = {"__file__": str(project / "app" / "main.py"), "__name__": "guard"}
+    exec(compile(prefix, "main.py", "exec"), ns)
+
+    import engine.thing
+    ns["reload_if_source_changed"](sandbox)
+    assert "engine.thing" in sys.modules, "CU_RELOAD_GUARD=off must not purge"
+    print("OK")
+    """
+)
+
+
+def run_in_subprocess(script: str, tmp_path: Path, guard: str) -> subprocess.CompletedProcess:
+    """Drive the real guard in a process of its own.
+
+    `sys.modules` is global, and purging ours mid-session would pull the
+    engine out from under every test holding a class object from it. The
+    environment is passed explicitly, because the test session itself sets
+    CU_RELOAD_GUARD=off and a child would inherit it.
+    """
     sandbox = tmp_path / "sandbox"
     make_tree(sandbox, 1)
-    script = tmp_path / "drive.py"
-    script.write_text(SCRIPT, encoding="utf-8")
+    path = tmp_path / "drive.py"
+    path.write_text(script, encoding="utf-8")
 
-    result = subprocess.run(
-        [sys.executable, "-I", str(script), str(PROJECT_ROOT), str(sandbox)],
+    environment = {**os.environ}
+    environment.pop("CU_RELOAD_GUARD", None)
+    if guard == "off":
+        environment["CU_RELOAD_GUARD"] = "off"
+
+    return subprocess.run(
+        [sys.executable, str(path), str(PROJECT_ROOT), str(sandbox)],
         capture_output=True,
         text=True,
         timeout=60,
+        env=environment,
     )
+
+
+def test_a_deploy_under_a_running_process_heals_itself(tmp_path: Path):
+    """The whole point, end to end: old module imported, files replaced, the
+    guard runs, and the next import sees the new code."""
+    result = run_in_subprocess(SCRIPT, tmp_path, guard="on")
     assert result.returncode == 0, result.stdout + result.stderr
     assert "OK" in result.stdout
+
+
+def test_the_guard_can_be_switched_off(tmp_path: Path):
+    """A test session needs that, and says why in tests/conftest.py."""
+    result = run_in_subprocess(OFF_SCRIPT, tmp_path, guard="off")
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "OK" in result.stdout
+
+
+def test_the_test_session_switches_the_guard_off():
+    assert os.environ.get("CU_RELOAD_GUARD") == "off", (
+        "tests/conftest.py must disable the purge before anything imports AppTest"
+    )
 
 
 # --------------------------------------------------------------------------
@@ -183,3 +237,14 @@ def test_the_entry_script_clears_a_session_built_by_the_old_modules():
     assert 'st.session_state.get("_cu_build") != BUILD' in tail
     assert "st.session_state.clear()" in tail
     assert tail.index("st.session_state.clear()") < tail.index("st.navigation")
+
+
+def test_an_unstamped_package_is_treated_as_stale():
+    """The guard's own bootstrap: the deploy that introduces it lands under a
+    process that imported everything before it existed."""
+    source = MAIN.read_text(encoding="utf-8")
+    guard = source.split("def reload_if_source_changed")[1].split(BOUNDARY)[0]
+    assert "seen is not None" not in guard, (
+        "an unstamped package must not be exempted; that left the live app "
+        "broken while the guard reported success"
+    )
