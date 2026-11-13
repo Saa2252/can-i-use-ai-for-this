@@ -223,6 +223,13 @@ def evaluate(inputs: Inputs, version: str = "v1_5") -> Verdict:
         None,
     )
 
+    # The stake and the next move come from the same rule that gave the
+    # reason line, so the card reads as one voice rather than as three rules
+    # talking over each other. `leading` is the decisive rules, most specific
+    # first, which is the order the reasons are already in.
+    why_it_matters = next((rule.why_it_matters for rule in leading if rule.why_it_matters), None)
+    next_step = next((rule.next_step for rule in leading if rule.next_step), None)
+
     return Verdict(
         status=status,
         approval_kind=approval_kind,
@@ -233,6 +240,8 @@ def evaluate(inputs: Inputs, version: str = "v1_5") -> Verdict:
         basis=basis_for(clause_ids),
         fired_rules=[rule.id for rule in fired],
         decisive_clauses=decisive_ids,
+        why_it_matters=why_it_matters,
+        next_step=next_step,
     )
 
 

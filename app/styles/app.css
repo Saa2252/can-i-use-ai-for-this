@@ -619,3 +619,368 @@ div[data-testid="stExpander"] details {
   font-weight: 600;
   color: var(--muted);
 }
+
+/* --- The sentence ------------------------------------------------------ */
+
+/* "I want to [draft or summarize] [client or HR information] using [a
+   personal AI account]." The connecting words are plain text; the three
+   answers are buttons, underlined so they read as the changeable parts of a
+   sentence rather than as a toolbar above it. */
+
+.st-key-cu_sentence {
+  margin: 0.5rem 0 0.2rem;
+  padding: 0.85rem 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  row-gap: 0.25rem;
+  align-items: baseline;
+}
+
+/* Each connecting word travels with the chip it introduces, so a narrow
+   screen breaks the sentence between phrases and never leaves "using"
+   stranded at the end of a line. */
+[class*="st-key-cu_said_"] {
+  flex: 0 0 auto;
+  align-items: baseline;
+}
+
+.cu-say {
+  font-size: 1.05rem;
+  line-height: 2.1;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.st-key-cu_slot_activity .stButton button,
+.st-key-cu_slot_data_class .stButton button,
+.st-key-cu_slot_tool .stButton button {
+  background: transparent;
+  border: none;
+  border-bottom: 2px dashed var(--border-strong);
+  border-radius: 0;
+  padding: 0.1rem 0.15rem;
+  min-height: 2rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+  text-align: left;
+}
+
+.st-key-cu_slot_activity .stButton button:hover,
+.st-key-cu_slot_data_class .stButton button:hover,
+.st-key-cu_slot_tool .stButton button:hover {
+  border-bottom-style: solid;
+  border-bottom-color: var(--text);
+  color: var(--text);
+}
+
+/* --- The option picker -------------------------------------------------- */
+
+/* Options wrap into rows rather than scrolling sideways; `risk.py` paints
+   each one on the scale it computes from the 7.1 grid. */
+[class*="st-key-cu_picker_"] {
+  margin-bottom: 0.3rem;
+  row-gap: 0.35rem;
+}
+
+[class*="st-key-cu_opt_"] .stButton button {
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+/* Where an option is not on a risk scale — the activity list — selection is
+   weight and a solid edge, never the accent. */
+.st-key-cu_picker_activity .stButton button[kind="tertiary"] {
+  background: var(--bg);
+  border: 2px solid var(--text);
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Clause ids quoted inline, inside a sentence rather than as a chip row. */
+.cu-cite {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.cu-list--help li {
+  margin-bottom: 0.3rem;
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+
+/* --- Stakes and the next move ------------------------------------------ */
+
+.cu-stake {
+  margin: 0.1rem 0 0.5rem;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.cu-next {
+  margin: 0.1rem 0 0.6rem;
+  padding: 0.5rem 0.7rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-sm);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+/* --- The gate trail ----------------------------------------------------- */
+
+/* Four gates in the policy's own order, drawn as a vertical trail so the one
+   that stopped the question is found by position, not by reading. */
+.cu-gates {
+  list-style: none;
+  margin: 0.2rem 0 0.4rem;
+  padding: 0;
+}
+
+.cu-gate {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.45rem 0 0.45rem 0.1rem;
+  position: relative;
+}
+
+/* The line joining the gates, stopping short of the last mark. */
+.cu-gate:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 0.67rem;
+  top: 1.75rem;
+  bottom: -0.3rem;
+  width: 2px;
+  background: var(--border);
+}
+
+.cu-gate__mark {
+  flex: 0 0 auto;
+  width: 1.45rem;
+  height: 1.45rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--muted);
+  z-index: 1;
+}
+
+.cu-gate--passed .cu-gate__mark {
+  border-color: var(--allowed);
+  background: var(--allowed-tint);
+  color: var(--allowed);
+}
+
+.cu-gate--failed .cu-gate__mark {
+  border-color: var(--prohibited);
+  background: var(--prohibited-tint);
+  color: var(--prohibited);
+}
+
+.cu-gate__body { min-width: 0; }
+
+.cu-gate__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.45rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.cu-gate__section,
+.cu-gate__state {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.cu-gate--failed .cu-gate__state { color: var(--prohibited); }
+.cu-gate--passed .cu-gate__state { color: var(--allowed); }
+
+.cu-gate--not_reached { opacity: 0.6; }
+
+.cu-gate__why {
+  margin: 0.15rem 0 0.2rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.cu-gate__clauses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.cu-gate__clause {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+/* --- No route ----------------------------------------------------------- */
+
+.cu-noroute {
+  margin: 0.4rem 0 0.6rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--prohibited);
+  border-radius: var(--radius);
+  background: var(--prohibited-tint);
+}
+
+.cu-noroute__head {
+  margin: 0;
+  font-weight: 700;
+  color: var(--prohibited);
+}
+
+.cu-noroute__body {
+  margin: 0.25rem 0 0;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+/* --- Guess first -------------------------------------------------------- */
+
+.cu-guessed {
+  margin: 0 0 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.cu-guessed--right { color: var(--allowed); }
+.cu-guessed--wrong { color: var(--not-permitted); }
+
+/* --- The sticky answer -------------------------------------------------- */
+
+/* On a phone the picker fills the screen, which is when the answer is most
+   wanted and least visible. Below 640px the verdict is repeated as a bar
+   pinned to the foot, closed by default and opened by tapping it. Above
+   that width the card is already on screen, so the bar is not rendered. */
+.cu-sticky { display: none; }
+
+@media (max-width: 640px) {
+  .cu-sticky {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+    background: var(--surface);
+    border-top: 3px solid var(--border-strong);
+    box-shadow: 0 -4px 16px rgba(28, 36, 48, 0.12);
+    padding: 0.5rem var(--gutter) calc(0.5rem + env(safe-area-inset-bottom));
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  .cu-sticky summary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    list-style: none;
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+
+  .cu-sticky summary::-webkit-details-marker { display: none; }
+
+  .cu-sticky__icon {
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+  }
+
+  .cu-sticky__more {
+    margin-left: auto;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .cu-sticky[open] .cu-sticky__more { visibility: hidden; }
+
+  .cu-sticky__reason {
+    margin: 0.4rem 0 0.3rem;
+    font-size: 0.88rem;
+    line-height: 1.55;
+  }
+
+  .cu-sticky__clauses {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin: 0;
+  }
+
+  .cu-sticky--allowed { border-top-color: var(--allowed); }
+  .cu-sticky--allowed .cu-sticky__icon { background: var(--allowed-tint); color: var(--allowed); }
+  .cu-sticky--needs-approval { border-top-color: var(--needs-approval); }
+  .cu-sticky--needs-approval .cu-sticky__icon {
+    background: var(--needs-approval-tint);
+    color: var(--needs-approval);
+  }
+  .cu-sticky--not-permitted { border-top-color: var(--not-permitted); }
+  .cu-sticky--not-permitted .cu-sticky__icon {
+    background: var(--not-permitted-tint);
+    color: var(--not-permitted);
+  }
+  .cu-sticky--prohibited { border-top-color: var(--prohibited); }
+  .cu-sticky--prohibited .cu-sticky__icon {
+    background: var(--prohibited-tint);
+    color: var(--prohibited);
+  }
+
+  /* Clear the bar so it never covers the last line of the footer. */
+  .block-container { padding-bottom: 7rem; }
+}
+
+/* At phone width the six example cards and the sentence together decide
+   whether the verdict starts above the fold. Both are tightened just enough
+   to keep the status line on the first screen; the pinned bar covers the
+   rest. */
+@media (max-width: 480px) {
+  .st-key-cu_examples .stButton button {
+    font-size: 0.78rem;
+    padding-inline: 0.5rem;
+    min-height: 2.4rem;
+  }
+
+  .st-key-cu_sentence {
+    padding: 0.6rem 0.7rem;
+  }
+
+  .cu-say,
+  .st-key-cu_slot_activity .stButton button,
+  .st-key-cu_slot_data_class .stButton button,
+  .st-key-cu_slot_tool .stButton button {
+    font-size: 0.98rem;
+  }
+}

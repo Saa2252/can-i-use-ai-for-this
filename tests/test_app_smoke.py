@@ -12,11 +12,15 @@ from pathlib import Path
 import pytest
 from streamlit.testing.v1 import AppTest
 
+from app.components.shell import escape
 from app.styles.tokens import APPROVAL_LABELS, STATUS_STYLES
-from engine.models import ApprovalKind, Status
+from engine.models import ApprovalKind, Status, Tool
 from engine.policy_parser import load_policy
-from engine.rules import evaluate
+from engine.rules import evaluate, load_rules
 from engine.scenarios import load_scenarios, scenario
+
+#: The four answers the guess buttons offer, in severity order.
+CHOICES = (Status.ALLOWED, Status.NEEDS_APPROVAL, Status.NOT_PERMITTED, Status.PROHIBITED)
 
 ENTRYPOINT = str(Path(__file__).resolve().parent.parent / "app" / "main.py")
 TIMEOUT = 30
@@ -73,6 +77,25 @@ def params_for(inputs) -> dict[str, str]:
     return params
 
 
+def open_slot(at: AppTest, field: str) -> AppTest:
+    """Tap the part of the sentence that holds `field`, revealing its options."""
+    return at.button(key=f"cu_slot_{field}").click().run()
+
+
+def choose(at: AppTest, field: str, value: str) -> AppTest:
+    """Open a slot and pick one of its options, as a visitor would."""
+    if not [b for b in at.button if b.key == f"cu_opt_{field}_{value}"]:
+        at = open_slot(at, field)
+    return at.button(key=f"cu_opt_{field}_{value}").click().run()
+
+
+def load_example(at: AppTest, number: int, guess: str | None = None) -> AppTest:
+    """Tap an example card and get past the guess it asks for."""
+    at = at.button(key=f"cu_example_{number}").click().run()
+    key = f"cu_guess_{guess}" if guess else "cu_guess_skip"
+    return at.button(key=key).click().run()
+
+
 # --------------------------------------------------------------------------
 # It renders at all
 # --------------------------------------------------------------------------
@@ -88,12 +111,29 @@ def test_hero_question_is_the_heading():
     assert "# Can I use AI for this?" in [m.value for m in at.markdown]
 
 
-def test_three_main_inputs_are_present():
+def test_the_question_is_one_sentence_with_three_changeable_parts():
+    """Phase 5 replaced the form with a sentence. The three answers the engine
+    cannot do without are the three chips in it."""
     at = run_app()
-    labels = [w.label for w in at.segmented_control] + [w.label for w in at.selectbox]
-    assert any("most sensitive" in label for label in labels)
-    assert any("Which tool" in label for label in labels)
-    assert any("What are you doing" in label for label in labels)
+    keys = {button.key for button in at.button}
+    assert {"cu_slot_activity", "cu_slot_data_class", "cu_slot_tool"} <= keys
+
+    sentence = body(at)
+    assert "I want to" in sentence
+    assert "using" in sentence
+
+
+def test_a_slot_opens_its_options_and_nothing_else():
+    at = open_slot(run_app(), "tool")
+    opened = {b.key for b in at.button if b.key and b.key.startswith("cu_opt_")}
+    assert opened == {f"cu_opt_tool_{tool.value}" for tool in Tool}
+
+
+def test_the_page_opens_with_no_slot_open():
+    """The sentence is the answer's question, not a list of menus: a visitor
+    arrives at a verdict, and opens a part only when they want to change it."""
+    at = run_app()
+    assert not [b for b in at.button if b.key and b.key.startswith("cu_opt_")]
 
 
 def test_footer_states_the_privacy_and_advice_disclaimers():
@@ -214,14 +254,12 @@ def test_changing_the_tool_changes_the_verdict():
     at = run_app(data_class="Confidential", tool="A", activity="drafting")
     assert STATUS_STYLES[Status.ALLOWED].word in body(at)
 
-    tool = next(w for w in at.segmented_control if "Which tool" in w.label)
-    tool.set_value("C").run()
+    at = choose(at, "tool", "C")
     assert STATUS_STYLES[Status.PROHIBITED].word in body(at)
 
 
-def test_example_chip_loads_that_scenario():
-    at = run_app()
-    at.button(key="cu_example_2").click().run()
+def test_example_card_loads_that_scenario():
+    at = load_example(run_app(), 2)
     assert not at.exception
     assert STATUS_STYLES[Status.PROHIBITED].word in body(at)
 
@@ -230,8 +268,7 @@ def test_conditional_flags_appear_only_when_relevant():
     at = run_app(data_class="Internal", tool="A", activity="drafting")
     assert not [t for t in at.toggle if "overrule" in t.label]
 
-    activity = next(w for w in at.selectbox if "What are you doing" in w.label)
-    activity.set_value("decision_about_person").run()
+    at = choose(at, "activity", "decision_about_person")
     assert [t for t in at.toggle if "overrule" in t.label]
 
 
@@ -240,8 +277,7 @@ def test_switching_away_from_agent_drops_the_stale_agent_action():
     at = run_app(data_class="Confidential", tool="A", activity="agent", agent_action="add_payee")
     assert STATUS_STYLES[Status.NOT_PERMITTED].word in body(at)
 
-    activity = next(w for w in at.selectbox if "What are you doing" in w.label)
-    activity.set_value("drafting").run()
+    at = choose(at, "activity", "drafting")
     page = body(at)
     assert STATUS_STYLES[Status.ALLOWED].word in page
     assert "C.2" not in page
@@ -311,9 +347,7 @@ def test_demo_mode_preloads_scenario_2():
 
 def test_demo_mode_leaves_the_page_usable_afterwards():
     """It loads once, so a recording can keep clicking without snapping back."""
-    at = run_app(demo="1")
-    tool = next(w for w in at.segmented_control if "Which tool" in w.label)
-    tool.set_value("A").run()
+    at = choose(run_app(demo="1"), "tool", "A")
     assert STATUS_STYLES[Status.PROHIBITED].word not in body(at)
 
 
@@ -336,9 +370,17 @@ def test_a_shared_link_still_beats_the_opening_example():
     assert STATUS_STYLES[Status.ALLOWED].word in body(at)
 
 
-def test_the_form_sits_under_its_own_heading():
-    """The inputs moved below the verdict, so they need introducing."""
-    assert "Build your own" in body(run_app())
+def test_the_answer_sits_directly_under_the_sentence():
+    """Phase 5: the verdict is the next thing after the line that produced it,
+    and the further questions come after the answer, not before it."""
+    at = run_app()
+    rendered = [h.value for h in at.html if "<style>" not in h.value]
+    sentence = next(i for i, value in enumerate(rendered) if "I want to" in value)
+    verdict = next(i for i, value in enumerate(rendered) if "cu-status" in value)
+    assert sentence < verdict
+
+    detail = [e for e in at.expander if e.label == "More detail"]
+    assert detail, "the client-contract example turns on training and fine-tuning"
 
 
 # --- Streamlit chrome -------------------------------------------------- #
@@ -529,3 +571,150 @@ def test_an_allowed_answer_says_what_would_have_made_it_stricter() -> None:
     assert any("Why is this not" in e.label for e in at.expander), (
         "an answer with stricter rules above it should say what they wanted"
     )
+
+
+# --------------------------------------------------------------------------
+# Phase 5: the sentence, the trail, the route, the guess
+# --------------------------------------------------------------------------
+
+
+def test_the_data_question_is_gone_and_its_examples_are_under_the_options() -> None:
+    """Phase 5 removed "Does it involve personal or client information?". The
+    worked cases it carried move under the data options, in the rules' own
+    words, so nothing the policy says was lost with the dropdown."""
+    at = run_app()
+    labels = [w.label for w in at.selectbox]
+    assert not any("personal or client information" in label for label in labels)
+
+    at = open_slot(at, "data_class")
+    page = body(at)
+    for rule_id in ("note_client_information", "note_sensitive_personal_data"):
+        rule = next(r for r in load_rules("v1_6") if r.id == rule_id)
+        # The page escapes its own HTML, so the apostrophes differ.
+        assert escape(rule.reason) in page
+
+
+def test_the_data_kind_still_travels_with_a_scenario_even_though_nobody_asks() -> None:
+    """Removing the question must not change a single verdict. The value
+    still arrives from a link or an example and still reaches the engine."""
+    at = run_app(**params_for(scenario(2).inputs))
+    expected = evaluate(scenario(2).inputs, "v1_6")
+    page = body(at)
+    assert STATUS_STYLES[expected.status].word in page
+    for clause in expected.decisive_clauses:
+        assert clause in page
+    assert at.query_params.get("data_kind") == "client_info"
+
+
+def test_a_change_nobody_can_make_is_never_offered() -> None:
+    """`data_kind` is carried, not asked, so it must not appear as a what-if:
+    a chip proposing a change with no control behind it is a dead end."""
+    at = run_app(**params_for(scenario(2).inputs))
+    assert "it involved" not in body(at)
+
+
+def test_the_card_says_what_is_at_stake_and_what_to_do_next() -> None:
+    at = run_app(**params_for(scenario(2).inputs))
+    verdict = evaluate(scenario(2).inputs, "v1_6")
+    page = body(at)
+    assert "Why it matters" in page
+    assert verdict.why_it_matters in page
+    assert "Do this next" in page
+    assert verdict.next_step in page
+
+
+def test_the_trail_shows_four_gates_and_names_the_one_that_stopped_it() -> None:
+    at = run_app(**params_for(scenario(2).inputs))
+    page = body(at)
+    assert "How it got here" in page
+    for name in ("Hard line", "Data and tool", "Approval", "Output checks"):
+        assert name in page
+    assert "failed" in page
+    assert "not reached" in page
+
+
+def test_a_blocked_answer_offers_the_smallest_change_that_fixes_it() -> None:
+    at = run_app(**params_for(scenario(2).inputs))
+    assert "Show me the safe way" in body(at)
+
+    at = at.button(key="cu_safe_way").click().run()
+    assert not at.exception
+    assert STATUS_STYLES[Status.ALLOWED].word in body(at)
+    assert at.query_params["tool"] == "A"
+
+
+def test_a_hard_line_is_told_plainly_and_offered_nothing() -> None:
+    """Scenario 13 is emotion recognition: Section 6 rules out the activity,
+    so a row of "it would be allowed if…" chips would read as a workaround."""
+    at = run_app(**params_for(scenario(13).inputs))
+    page = body(at)
+    assert "No route: this is a hard line." in page
+    assert "What if" not in page
+    assert not [b for b in at.button if b.key == "cu_safe_way"]
+
+
+def test_an_allowed_answer_is_offered_no_route_at_all() -> None:
+    at = run_app(data_class="Public", tool="A", activity="drafting")
+    assert STATUS_STYLES[Status.ALLOWED].word in body(at)
+    assert "Show me the safe way" not in body(at)
+
+
+def test_tapping_an_example_asks_before_it_tells() -> None:
+    at = run_app().button(key="cu_example_19").click().run()
+    page = body(at)
+    assert "Guess first" in page
+    assert scenario(19).title in page
+    # The answer is not on screen yet, and neither is the sentence.
+    assert "I want to" not in page
+    assert {f"cu_guess_{status.value}" for status in CHOICES} <= {b.key for b in at.button}
+
+
+def test_the_guess_is_marked_without_any_statistics() -> None:
+    at = run_app().button(key="cu_example_19").click().run()
+    at = at.button(key="cu_guess_PROHIBITED").click().run()
+
+    page = body(at)
+    assert evaluate(scenario(19).inputs, "v1_6").status is Status.NEEDS_APPROVAL
+    assert "Not quite" in page
+    assert "You said Prohibited" in page
+    assert "%" not in page
+
+
+def test_a_right_guess_says_so() -> None:
+    at = run_app().button(key="cu_example_13").click().run()
+    at = at.button(key="cu_guess_PROHIBITED").click().run()
+    assert "You had it" in body(at)
+
+
+def test_the_loaded_example_is_marked_and_the_others_are_not() -> None:
+    at = load_example(run_app(), 19)
+    marked = [
+        b.label for b in at.button if b.key and b.key.startswith("cu_example_") and "✓" in b.label
+    ]
+    assert marked == ["Legal meeting ✓"]
+
+
+def test_no_card_is_marked_while_a_guess_is_pending() -> None:
+    """The question on screen is a different scenario from the one loaded."""
+    at = run_app().button(key="cu_example_19").click().run()
+    assert not [
+        b for b in at.button if b.key and b.key.startswith("cu_example_") and "✓" in b.label
+    ]
+
+
+def test_the_answer_is_repeated_at_the_foot_of_a_narrow_screen() -> None:
+    """The picker fills a phone, which is when the answer is most wanted."""
+    at = run_app(**params_for(scenario(2).inputs))
+    sticky = [h.value for h in at.html if "cu-sticky" in h.value and "<style>" not in h.value]
+    assert sticky, "no pinned answer was rendered"
+    assert STATUS_STYLES[Status.PROHIBITED].word in sticky[0]
+
+
+def test_more_detail_is_absent_when_nothing_turns_on_it() -> None:
+    """The row appears only when this combination has a further question. An
+    empty "More detail" invites a visitor to look for something not there."""
+    at = run_app(data_class="Internal", tool="A", activity="drafting")
+    assert not [e for e in at.expander if e.label == "More detail"]
+
+    at = run_app(**params_for(scenario(19).inputs))
+    assert [e for e in at.expander if e.label == "More detail"]

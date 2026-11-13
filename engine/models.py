@@ -335,6 +335,14 @@ class Rule(BaseModel):
     requirements: list[str] = Field(default_factory=list)
     try_instead: str | None = None
 
+    #: What is at stake, in one sentence, and what to do next. Both are
+    #: restatements of the cited clauses in plain English: they carry no
+    #: condition of their own, appear in no `when:` block and change no
+    #: verdict. A rule without them simply shows nothing, which is how the
+    #: older rulesets load unchanged.
+    why_it_matters: str | None = None
+    next_step: str | None = None
+
 
 class Verdict(BaseModel):
     """The answer shown on the card."""
@@ -353,3 +361,9 @@ class Verdict(BaseModel):
     #: together, which is right for a drawer and wrong for a row of chips,
     #: where seven equal-looking chips hide the one doing the work.
     decisive_clauses: list[str] = Field(default_factory=list)
+
+    #: The stake and the next move, taken from the rule that led the reason
+    #: line. A verdict tells someone what the answer is; these two tell them
+    #: why anyone should care and what to do on Monday morning.
+    why_it_matters: str | None = None
+    next_step: str | None = None

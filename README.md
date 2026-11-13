@@ -1,10 +1,14 @@
 # Can I Use AI For This?
 
 An interactive decision tool built from an AI Acceptable Use Policy
-(AIG-POL-001, version 1.6). You pick three things — what data, which tool,
-what you're doing — and get an answer, with the clauses it rests on.
+(AIG-POL-001, version 1.6). You write one sentence — *I want to draft or
+summarize client or HR information using a personal or free AI account* — and
+get an answer, with the clauses it rests on, what is at stake, what to do
+next, and the four gates the question passed through on the way.
 
-![The Check page: three inputs and a verdict with its clauses](docs/screenshots/check-verdict.jpg)
+![The Check page: the sentence, and the verdict with its clauses](docs/screenshots/check-1280-sentence.jpg)
+
+![The gate trail: Section 6, 7, 8 and 9, and where the question stopped](docs/screenshots/check-1280-trail.jpg)
 
 ---
 

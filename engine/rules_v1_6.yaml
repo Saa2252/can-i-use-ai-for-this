@@ -29,6 +29,12 @@
       anything the tool can see, and any file you attach. The highest class
       present decides which tool you may use.
     clauses: ["7.2"]
+    why_it_matters: >-
+      One Confidential line in a prompt decides the tool for the whole
+      conversation, not just for the file you attached.
+    next_step: >-
+      Look at the prompt, the attachment and anything the tool can already see,
+      and take the highest class you find (7.2).
 
 - id: note_ordinary_personal_data
   when: { data_kind: ordinary_personal }
@@ -38,6 +44,12 @@
       A colleague's name or work email in a document does not make the data
       sensitive. It is Internal or Confidential, not Restricted.
     clauses: ["7.5"]
+    why_it_matters: >-
+      Treating every mention of a person as Restricted stops ordinary work
+      without protecting anyone.
+    next_step: >-
+      Classify it under the Data Classification Standard as Internal or
+      Confidential, not Restricted (7.5).
 
 - id: note_sensitive_personal_data
   when: { data_kind: sensitive_personal }
@@ -45,6 +57,12 @@
     status: ALLOWED
     reason: Sensitive personal data is Restricted, which narrows you to an approved use case.
     clauses: ["7.4"]
+    why_it_matters: >-
+      Sensitive personal data is where a leak does lasting harm to a real
+      person, so 7.4 pins it to Restricted whatever else is in the file.
+    next_step: >-
+      Treat it as Restricted: it needs an approved, registered use case before
+      it goes into any tool (7.4, 8.6).
 
 - id: note_hr_health_record
   when: { data_kind: hr_health_record }
@@ -55,6 +73,12 @@
       medical accommodation, stays Restricted even though ordinary HR files are
       only Confidential.
     clauses: ["7.4", "7.5"]
+    why_it_matters: >-
+      An HR file reads as ordinary until there is health data in it, which is
+      the classification people get wrong most often.
+    next_step: >-
+      Treat the whole record as Restricted rather than Confidential, and get the
+      use case approved first (7.4, 8.6).
 
 - id: note_client_information
   when: { data_kind: client_info }
@@ -64,6 +88,12 @@
       For AI use, a client's identity and any non-public information about them
       are Confidential, even if nothing else in the document is.
     clauses: ["B.2.3", "7.6"]
+    why_it_matters: >-
+      A client's name can be the confidential part even when everything else in
+      the document is dull.
+    next_step: >-
+      Treat it as Confidential, which keeps it out of Tier B and Tier C tools
+      (B.2.3, 7.1).
 
 - id: personal_data_minimisation
   when:
@@ -77,6 +107,13 @@
       - "The minimum data needed; prefer de-identified data"
       - "Access, correction and deletion requests followed into tool histories, agent
          memory, meeting transcripts, derived indexes and logs"
+    why_it_matters: >-
+      Personal data does not stay in the prompt: it spreads into tool histories,
+      agent memory, transcripts and logs that a deletion request still has to
+      reach.
+    next_step: >-
+      Name the lawful basis, cut the data to the minimum, and prefer a
+      de-identified version (7.3, 7.7).
 
 # ===========================================================================
 # Data rules: the 7.1 table, always applied
@@ -92,6 +129,12 @@
     clauses: ["6.3", "7.1"]
     requirements:
       - "If a secret has already been exposed, report it within 24 hours and rotate it"
+    why_it_matters: >-
+      A key pasted into a prompt has left the organization's control, and no
+      approval afterwards can take it back.
+    next_step: >-
+      Do not paste it anywhere; treat a credential that has already gone in as
+      exposed, and rotate it (6.3).
 
 - id: data_tier_c_non_public
   when:
@@ -104,6 +147,12 @@
       An unapproved or personal AI account is Tier C, and nothing other than
       public information may go into it.
     clauses: ["6.7", "7.1"]
+    why_it_matters: >-
+      A personal AI account sits outside every contract the organization has, so
+      whatever goes in is no longer governed by one.
+    next_step: >-
+      Move the work into an approved Tier A tool, or keep it to public
+      information (7.1).
 
 - id: data_tier_b_above_internal
   when:
@@ -117,6 +166,12 @@
     try_instead: >-
       Use an approved Tier A tool for this data, or have IT and Security assess
       the tool against the Tier A criteria in B.1.2.
+    why_it_matters: >-
+      Tier B was assessed and found short of some Tier A controls, and
+      Confidential data is exactly what those controls protect.
+    next_step: >-
+      Use an approved Tier A tool, or ask IT and Security to assess this one
+      against B.1.2 — the Standard route targets 10 working days (B.4).
 
 - id: data_restricted_in_tier_a
   when:
@@ -134,6 +189,12 @@
       - "A registered use case and an impact assessment sized by the B.3 rubric"
       - "A named human reviewer, and logging"
       - "AI Governance Committee approval of Tier A status for a tool holding Restricted data"
+    why_it_matters: >-
+      Restricted data in an approved tool is still Restricted; the approval is
+      what ties it to one purpose and one reviewer.
+    next_step: >-
+      Submit the use case through the AI intake form — the Approval route
+      targets 20 working days (14.1, B.4).
 
 - id: data_personal_selfhosted_non_public
   when:
@@ -151,6 +212,12 @@
       Run the model on organizational servers or the organization's cloud
       tenancy, or use an approved Tier A tool. On a managed company laptop the
       same model is Tier B at most, so it still stops at Internal data.
+    why_it_matters: >-
+      A model on an unmanaged device puts work data on hardware the organization
+      cannot patch, wipe or audit.
+    next_step: >-
+      Run it on organizational servers or the organization's cloud tenancy, or
+      move the work to an approved tool (B.1.3).
 
 - id: data_public_any_tier
   when: { data_class: Public }
@@ -158,6 +225,11 @@
     status: ALLOWED
     reason: Public information may go into any tier, including a personal account.
     clauses: ["7.1"]
+    why_it_matters: >-
+      Public information is the one class whose exposure costs nothing, which is
+      why the 7.1 grid opens every tier to it.
+    next_step: >-
+      Go ahead, and check the output before you rely on it (9.2).
 
 - id: data_internal_tier_a_or_b
   when:
@@ -168,6 +240,12 @@
     status: ALLOWED
     reason: Internal data is allowed in Tier A and Tier B tools.
     clauses: ["7.1"]
+    why_it_matters: >-
+      Internal data is where most work actually happens, so the policy keeps two
+      tiers open to it rather than one.
+    next_step: >-
+      Go ahead, and keep anything Confidential out of the same conversation
+      (7.2).
 
 - id: data_confidential_tier_a
   when:
@@ -178,6 +256,12 @@
     status: ALLOWED
     reason: Confidential data is allowed in a Tier A tool.
     clauses: ["7.1"]
+    why_it_matters: >-
+      Tier A is the only tier assessed against the controls that Confidential
+      data needs.
+    next_step: >-
+      Go ahead, and keep the work in this tool rather than copying it out into
+      another one (7.1).
 
 - id: client_data_training_without_permission
   when:
@@ -191,6 +275,12 @@
       fine-tune a model, where the client contract does not allow it. If the
       contract is silent, the answer is no.
     clauses: ["6.8", "7.6"]
+    why_it_matters: >-
+      Training is irreversible: a model that has learned from client data cannot
+      unlearn it, and the client never agreed to it.
+    next_step: >-
+      Have the contract checked before anything is uploaded; a contract that is
+      silent means no (7.6).
 
 # ===========================================================================
 # Self-hosted and open-weight models
@@ -216,6 +306,12 @@
       - "Access control tied to SSO, and logging of use"
       - "A named owner responsible for patching and updates"
       - "An evaluation for fitness, basic safety and prompt injection"
+    why_it_matters: >-
+      Self-hosting trades vendor risk for risks the organization now owns
+      itself: the weights, the patching and the logs.
+    next_step: >-
+      Meet every B.1.3 criterion and register the model before it is used
+      (B.1.3).
 
 - id: selfhosted_on_managed_laptop
   when:
@@ -226,6 +322,12 @@
     status: ALLOWED
     reason: A model on a managed company laptop is Tier B at most, so it stops at Internal data.
     clauses: ["B.1.3"]
+    why_it_matters: >-
+      A laptop cannot give the isolation and logging that Tier A assumes,
+      however capable the model running on it is.
+    next_step: >-
+      Keep it to Internal data, or move the model onto organizational
+      infrastructure (B.1.3, 7.1).
 
 # ===========================================================================
 # Activities
@@ -242,6 +344,11 @@
     requirements:
       - "Verify facts, figures, citations and legal, financial, medical or technical claims
          against a reliable source before they go into anything external or any decision"
+    why_it_matters: >-
+      Drafting is the use that makes AI worth having, and the only thing it asks
+      of you is that you read what comes back.
+    next_step: >-
+      Go ahead, and check the output before it leaves your hands (9.2).
 
 - id: activity_coding
   when: { activity: coding }
@@ -254,6 +361,12 @@
     requirements:
       - "The same review, testing, security scanning and licence checks as any other code"
       - "The assistant configured to exclude secret files from its context"
+    why_it_matters: >-
+      AI-written code carries the same defects and licence obligations as any
+      other code, and reaches production the same way.
+    next_step: >-
+      Put it through the usual review, testing, security scanning and licence
+      checks (9.3).
 
 - id: activity_decision_about_person
   when: { activity: decision_about_person }
@@ -275,6 +388,12 @@
          plain-language explanation after an adverse outcome"
       - "Workers' representatives informed before it is put into use at work, and consulted
          where local law gives them that right"
+    why_it_matters: >-
+      A decision with a legal or similarly significant effect is the point where
+      AI stops being a tool and starts changing someone's life.
+    next_step: >-
+      Submit it through the AI intake form before it starts — the Approval route
+      targets 20 working days (14.1, B.4).
 
 - id: decision_without_human_review
   when:
@@ -287,6 +406,12 @@
       A consequential decision about a person may never rest on AI output
       alone. Meaningful human review is not optional.
     clauses: ["6.6"]
+    why_it_matters: >-
+      With nobody able to overrule it, there is nobody to answer for the
+      decision and nobody for the person to appeal to.
+    next_step: >-
+      Give a named person the authority and the information to overrule the
+      output, or do not run it (6.6, 3.1).
 
 - id: decision_hiring_context
   when:
@@ -306,6 +431,12 @@
       - "Workers' representatives informed before deployment; where a works council or
          equivalent must agree, its agreement recorded with the approval"
       - "Decision records kept for at least 4 years, or longer where local law requires"
+    why_it_matters: >-
+      Hiring and performance tools learn from past decisions, so bias testing is
+      the only thing standing between history and repetition.
+    next_step: >-
+      Submit it with anti-bias testing planned before and after deployment — the
+      Approval route targets 20 working days (HR.1, B.4).
 
 - id: activity_chatbot
   when: { activity: chatbot }
@@ -317,6 +448,12 @@
     requirements:
       - "A registered use case, a named human reviewer, and logging"
       - "The chatbot discloses that it is AI, and offers a person on request"
+    why_it_matters: >-
+      Someone talking to a chatbot that never says it is one cannot judge what
+      they are being told.
+    next_step: >-
+      Submit the use case, and make the AI disclosure part of the first thing it
+      says (8.2, 10.1).
 
 - id: activity_publishing
   when: { activity: publishing }
@@ -333,6 +470,12 @@
          AI-generated label"
       - "Checked for close copies of protected material, third-party trademarks, and
          open-source code under incompatible licences"
+    why_it_matters: >-
+      Published AI content carries the organization's name, so a mistake becomes
+      its statement rather than someone's draft.
+    next_step: >-
+      Submit it for approval and apply the 10.2 disclosure test before it goes
+      out (8.3, 10.2).
 
 - id: activity_synthetic_media
   when: { activity: synthetic_media }
@@ -344,6 +487,11 @@
     requirements:
       - "Written consent from the person"
       - "An AI label on the result"
+    why_it_matters: >-
+      A synthetic likeness can be convincing to everyone except the person it
+      depicts.
+    next_step: >-
+      Submit it for approval, with the person's consent recorded (8.4).
 
 - id: synthetic_media_intimate
   when:
@@ -356,6 +504,12 @@
       Creating or altering sexual or intimate imagery of a real person is
       prohibited outright. No consent, approval or exception makes it available.
     clauses: ["6.2"]
+    why_it_matters: >-
+      Intimate imagery of a real person is an injury to that person, and that
+      does not change with consent, purpose or approval.
+    next_step: >-
+      There is no route: do not create or alter it, and report anything you find
+      (6.2).
 
 - id: activity_monitoring_employees
   when: { activity: monitoring_employees }
@@ -367,6 +521,12 @@
     requirements:
       - "A registered use case, a named human reviewer, and logging"
       - "Staff told what is monitored, in line with privacy and employment law"
+    why_it_matters: >-
+      Monitoring changes how people behave long before it catches anything, so
+      it is a decision to take openly.
+    next_step: >-
+      Submit it for approval before any monitoring starts — the Approval route
+      targets 20 working days (8.7, B.4).
 
 - id: activity_emotion_recognition
   when: { activity: emotion_recognition }
@@ -376,6 +536,12 @@
       Emotion recognition in the workplace or in education is a prohibited
       practice, wherever in the world it takes place.
     clauses: ["6.1"]
+    why_it_matters: >-
+      Inferring emotion from a face or a voice is unreliable science used to
+      make real judgements about real people.
+    next_step: >-
+      There is no route: use a method that measures what people do rather than
+      what a model thinks they feel (6.1).
 
 - id: activity_fatigue_detection
   when: { activity: fatigue_detection }
@@ -392,6 +558,12 @@
       - "A full impact assessment: this is High risk under the B.3 rubric"
       - "Legal and Privacy confirm the use falls inside a stated exclusion"
       - "Staff told what is monitored"
+    why_it_matters: >-
+      Detecting a physical state for safety is a genuine use, and it sits one
+      step away from the emotion recognition the policy bans outright.
+    next_step: >-
+      Submit it for approval as both employee monitoring and a safety-critical
+      use (8.7, 8.8).
 
 - id: activity_safety_critical
   when: { activity: safety_critical }
@@ -405,6 +577,11 @@
     requirements:
       - "A full impact assessment, with testing for bias and failure modes"
       - "The relevant Part D sector annex applied on top of Parts A to C"
+    why_it_matters: >-
+      In safety-critical and clinical work the cost of a wrong output is
+      measured in harm, not in rework.
+    next_step: >-
+      Submit it for approval, and check the Part D annex for your sector (8.8).
 
 - id: activity_connecting_systems
   when: { activity: connecting_systems }
@@ -418,6 +595,11 @@
     requirements:
       - "A registered use case before the connection is made"
       - "Everything the tool can read through the connector counted in the classification"
+    why_it_matters: >-
+      A connector hands the tool everything on the other side of it, which is a
+      far larger decision than setting it up makes it look.
+    next_step: >-
+      Submit the connection as a new use case before it is switched on (8.9).
 
 - id: notetaker_ordinary_meeting
   when:
@@ -437,6 +619,12 @@
       - "Where local law requires every participant's consent, the host gets it first,
          and switches the notetaker off if anyone objects"
       - "The host reviews the summary before it is shared"
+    why_it_matters: >-
+      A recorded meeting becomes a document that outlives the conversation, and
+      people speak differently once they know.
+    next_step: >-
+      Say at the start that it is recording, and keep the transcript only for
+      its retention period (B.6.1, B.6.4).
 
 - id: notetaker_excluded_meeting
   when:
@@ -454,6 +642,12 @@
     clauses: ["B.6.3"]
     requirements:
       - "AI Governance Committee approval of this specific case"
+    why_it_matters: >-
+      Legal privilege, an HR case and an undisclosed transaction are all things
+      a transcript can damage simply by existing.
+    next_step: >-
+      Take notes by hand, or ask the Committee to approve this meeting type in
+      advance (B.6.3).
 
 # ===========================================================================
 # AI agents (11.x and C.x, as amended in v1.5)
@@ -474,6 +668,12 @@
       - "All actions logged in a form audit can review"
       - "A tested kill switch and a way to roll back its actions"
       - "Staged rollout, with users told what it can do and who to contact"
+    why_it_matters: >-
+      An agent acts while nobody is watching, so the register and the kill
+      switch are how a person stays answerable for it.
+    next_step: >-
+      Register it with a named owner, its own identity and least privilege
+      before it runs (11.1, 11.2).
 
 - id: agent_untrusted_content
   when: { activity: agent }
@@ -486,6 +686,12 @@
     clauses: ["11.4", "C.3"]
     requirements:
       - "Prompt-injection testing before release and after each significant change"
+    why_it_matters: >-
+      An agent that treats what it reads as instructions can be told what to do
+      by anyone who can get text in front of it.
+    next_step: >-
+      Test it for prompt injection before release and after each significant
+      change (C.3).
 
 - id: agent_memory
   when: { activity: agent }
@@ -499,6 +705,12 @@
     requirements:
       - "The owner can inspect and purge the memory"
       - "A retention period set at approval, after which memory is deleted automatically"
+    why_it_matters: >-
+      Agent memory is a data store nobody remembers to classify, and it keeps
+      what the conversation forgot.
+    next_step: >-
+      Treat memory as storage under Section 7: no Secrets, and Restricted data
+      only where the approved use case allows it (11.7).
 
 - id: agent_read_only
   when:
@@ -509,6 +721,12 @@
     status: ALLOWED
     reason: Agents are read-only by default, which is the setting that needs no action approval.
     clauses: ["11.3"]
+    why_it_matters: >-
+      Read-only is the setting where a mistake costs an explanation rather than
+      a reversal.
+    next_step: >-
+      Keep it read-only unless a specific action has been approved for it
+      (11.3).
 
 - id: agent_write_rights
   when:
@@ -526,6 +744,12 @@
       - "A registered use case, an impact assessment, a named human reviewer, and logging"
       - "Limits recorded in the agent's register entry: spend, rate, recipients,
          data scope and tools"
+    why_it_matters: >-
+      The moment an agent can write, send, pay or delete, its mistakes stop
+      being drafts.
+    next_step: >-
+      Submit the use case before the rights are switched on — the Approval route
+      targets 20 working days (8.5, B.4).
 
 - id: agent_payment_in_cap_to_allowlisted_payee
   when:
@@ -545,6 +769,12 @@
     requirements:
       - "Committee risk acceptance"
       - "caps / allowlist set in C.2"
+    why_it_matters: >-
+      The cap and the allowlist are what keep an unattended payment small enough
+      to put right.
+    next_step: >-
+      Get the use case approved once, with the Committee accepting the cap and
+      the allowlist (11.3, C.2).
 
 - id: agent_payment_outside_allowance
   when:
@@ -563,6 +793,11 @@
     clauses: ["11.3", "C.2"]
     requirements:
       - "Human approval for this payment, before it is made"
+    why_it_matters: >-
+      Outside the cap or the allowlist there is nothing left to limit what a
+      single mistake can send.
+    next_step: >-
+      Have a human approve that payment before it goes (11.3).
 
 - id: agent_message_to_allowlisted_recipient
   when:
@@ -583,6 +818,12 @@
     requirements:
       - "Committee risk acceptance"
       - "caps / allowlist set in C.2"
+    why_it_matters: >-
+      A message that leaves the organization cannot be recalled, so the
+      allowlist decides who an unattended agent can reach.
+    next_step: >-
+      Get the use case approved once, with the Committee accepting the rate
+      limit and the allowlist (11.3, C.2).
 
 - id: agent_message_outside_allowance
   when:
@@ -601,6 +842,11 @@
     clauses: ["11.3", "C.2"]
     requirements:
       - "Human approval for this message, before it is sent"
+    why_it_matters: >-
+      An unapproved message to an unapproved recipient is how an agent speaks
+      for the organization to someone it was never meant to reach.
+    next_step: >-
+      Have a human approve that message before it is sent (11.3).
 
 - id: agent_adds_payee
   when:
@@ -614,6 +860,10 @@
       is the control; an agent that can extend it has no limit at all.
     clauses: ["C.2"]
     try_instead: a human adds it, and it is logged
+    why_it_matters: >-
+      An agent that can add to its own allowlist does not have one.
+    next_step: >-
+      A human adds the payee, and the change is logged (C.2).
 
 - id: agent_adds_recipient
   when:
@@ -627,6 +877,11 @@
       same footing as adding a payee.
     clauses: ["C.2"]
     try_instead: a human adds it, and it is logged
+    why_it_matters: >-
+      An agent that can extend its own recipient list can eventually reach
+      anyone.
+    next_step: >-
+      A human adds the recipient, and the change is logged (C.2).
 
 - id: agent_deletion
   when:
@@ -642,6 +897,12 @@
     clauses: ["11.3", "C.2"]
     requirements:
       - "Human approval for each deletion"
+    why_it_matters: >-
+      Without a tested backup, a deletion is the one action no later review can
+      undo.
+    next_step: >-
+      Have a human approve each deletion, and confirm the backup is tested
+      (11.3, C.2).
 
 - id: agent_production_change
   when:
@@ -657,3 +918,9 @@
     clauses: ["11.3", "C.2"]
     requirements:
       - "Human approval for each production change"
+    why_it_matters: >-
+      A production change without a tested rollback takes the whole system with
+      it.
+    next_step: >-
+      Have a human approve each change, and confirm the rollback is tested
+      (11.3, C.2).

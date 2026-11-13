@@ -10,8 +10,16 @@ from __future__ import annotations
 
 import pytest
 
-from engine.conditions import leaves, specificity
-from engine.explain import best_flips, deciding_rules, flips, nearest_stricter, unmet
+from engine.conditions import leaves, matches, specificity
+from engine.explain import (
+    best_flips,
+    deciding_rules,
+    flips,
+    is_hard_line,
+    nearest_stricter,
+    safe_route,
+    unmet,
+)
 from engine.models import (
     Activity,
     DataClass,
@@ -22,9 +30,18 @@ from engine.models import (
     resolve_effective_tier,
 )
 from engine.rules import evaluate, load_rules
-from engine.scenarios import load_scenarios
+from engine.scenarios import load_scenarios, scenario
 
 VERSION = "v1_6"
+
+#: Severity order, repeated here so a route that claims to improve the
+#: answer is checked against the order rather than against itself.
+SEVERITY = {
+    Status.ALLOWED: 0,
+    Status.NEEDS_APPROVAL: 1,
+    Status.NOT_PERMITTED: 2,
+    Status.PROHIBITED: 3,
+}
 
 CHANGEABLE = ["data_class", "tool", "activity", "data_kind"]
 
@@ -187,3 +204,115 @@ def test_a_near_miss_names_a_rule_that_exists_in_this_version() -> None:
     near = nearest_stricter(PLAIN_DRAFTING, VERSION)
     assert near is not None
     assert near.rule.id in ids
+
+
+# --------------------------------------------------------------------------
+# The way out (Phase 5)
+# --------------------------------------------------------------------------
+
+ROUTE_FIELDS = [
+    "data_class",
+    "tool",
+    "activity",
+    "host",
+    "agent_action",
+    "meeting_type",
+    "human_review",
+    "payee_on_allowlist",
+    "recipient_on_allowlist",
+    "within_caps",
+    "client_contract_allows",
+    "training_or_finetuning",
+]
+
+
+def _fields_for(inputs) -> list[str]:
+    return [name for name in ROUTE_FIELDS if getattr(inputs, name, None) is not None]
+
+
+@pytest.mark.parametrize("example", load_scenarios(), ids=lambda s: f"{s.n}")
+def test_a_route_really_reaches_the_answer_it_promises(example):
+    """The button cannot offer a verdict the engine would refuse to give."""
+    route = safe_route(example.inputs, VERSION, _fields_for(example.inputs))
+    if route is None:
+        return
+    altered = example.inputs.model_copy(
+        update={change.field: change.value for change in route.changes}
+    )
+    assert evaluate(altered, VERSION).status is route.status
+
+
+@pytest.mark.parametrize("example", load_scenarios(), ids=lambda s: f"{s.n}")
+def test_a_route_is_always_an_improvement(example):
+    route = safe_route(example.inputs, VERSION, _fields_for(example.inputs))
+    if route is None:
+        return
+    current = evaluate(example.inputs, VERSION).status
+    assert SEVERITY[route.status] < SEVERITY[current]
+
+
+@pytest.mark.parametrize("example", load_scenarios(), ids=lambda s: f"{s.n}")
+def test_a_route_never_changes_what_you_are_trying_to_do(example):
+    """Changing the activity is not a safer way to do the thing asked about,
+    it is a different question."""
+    route = safe_route(example.inputs, VERSION, _fields_for(example.inputs))
+    if route is None:
+        return
+    assert all(change.field != "activity" for change in route.changes)
+
+
+@pytest.mark.parametrize("example", load_scenarios(), ids=lambda s: f"{s.n}")
+def test_a_route_is_at_most_two_changes_and_prefers_one(example):
+    fields = _fields_for(example.inputs)
+    route = safe_route(example.inputs, VERSION, fields)
+    if route is None:
+        return
+    assert 1 <= len(route.changes) <= 2
+    if len(route.changes) == 2:
+        one_change = safe_route(example.inputs, VERSION, fields, max_changes=1)
+        assert one_change is None, "a one-change route existed and was passed over"
+
+
+@pytest.mark.parametrize("example", load_scenarios(), ids=lambda s: f"{s.n}")
+def test_a_hard_line_is_offered_no_route_at_all(example):
+    if is_hard_line(example.inputs, VERSION):
+        assert safe_route(example.inputs, VERSION, _fields_for(example.inputs)) is None
+
+
+@pytest.mark.parametrize("example", load_scenarios(), ids=lambda s: f"{s.n}")
+def test_a_hard_line_is_an_activity_prohibited_by_section_6(example):
+    """Computed from the rule that fired, not from a list kept somewhere."""
+    verdict = evaluate(example.inputs, VERSION)
+    ctx = example.inputs.context(resolve_effective_tier(example.inputs, VERSION))
+    expected = verdict.status is Status.PROHIBITED and any(
+        matches(rule.when, ctx)
+        and rule.status is Status.PROHIBITED
+        and any(leaf.field == "activity" for leaf in leaves(rule.when))
+        and any(clause.startswith("6.") for clause in rule.clauses)
+        for rule in load_rules(VERSION)
+    )
+    assert is_hard_line(example.inputs, VERSION) is expected
+
+
+def test_a_tool_question_is_not_a_hard_line():
+    """Confidential data in a personal account is prohibited and has an
+    obvious way out. Treating it like emotion recognition would hide that."""
+    client_contract = scenario(2)
+    assert evaluate(client_contract.inputs, VERSION).status is Status.PROHIBITED
+    assert not is_hard_line(client_contract.inputs, VERSION)
+    route = safe_route(client_contract.inputs, VERSION, _fields_for(client_contract.inputs))
+    assert route is not None
+    assert [change.field for change in route.changes] == ["tool"]
+
+
+def test_emotion_recognition_is_a_hard_line():
+    emotion = scenario(13)
+    assert is_hard_line(emotion.inputs, VERSION)
+    assert safe_route(emotion.inputs, VERSION, _fields_for(emotion.inputs)) is None
+
+
+def test_an_allowed_answer_is_offered_no_route():
+    allowed = next(
+        s for s in load_scenarios() if evaluate(s.inputs, VERSION).status is Status.ALLOWED
+    )
+    assert safe_route(allowed.inputs, VERSION, _fields_for(allowed.inputs)) is None

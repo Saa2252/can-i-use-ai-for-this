@@ -17,6 +17,7 @@ the engine does not actually have (BUILD_SPEC 0.5).
 from __future__ import annotations
 
 from dataclasses import dataclass
+from itertools import combinations, product
 from typing import Any
 
 from engine.conditions import COMBINATORS, Condition, leaves, matches, specificity
@@ -228,3 +229,150 @@ def nearest_stricter(inputs: Inputs, version: str) -> NearMiss | None:
         candidates,
         key=lambda near: (len(near.missing), -_SEVERITY[near.rule.status], near.rule.id),
     )
+
+
+# --------------------------------------------------------------------------
+# The way out
+# --------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class Change:
+    """One input moved to a new value."""
+
+    field: str
+    value: Any
+
+
+@dataclass(frozen=True)
+class Route:
+    """A set of changes that reaches a gentler answer, and the answer it reaches."""
+
+    changes: tuple[Change, ...]
+    status: Status
+
+    @property
+    def reaches_allowed(self) -> bool:
+        return self.status is Status.ALLOWED
+
+
+def is_hard_line(inputs: Inputs, version: str) -> bool:
+    """Whether the activity itself is prohibited under Section 6.
+
+    The distinction matters, and it is not the same as "the verdict is
+    PROHIBITED". Confidential data in a personal account is prohibited and
+    has an obvious way out: use a different tool. Emotion recognition is
+    prohibited *because of what it is*, and there is nothing to change —
+    offering a route there would read as a way around the ban.
+
+    A rule marks the second kind by naming the activity in its `when:` tree
+    and citing Section 6. Both facts come from the rule, so no list of
+    "real" prohibitions is kept anywhere.
+    """
+    if evaluate(inputs, version).status is not Status.PROHIBITED:
+        return False
+
+    ctx = inputs.context(resolve_effective_tier(inputs, version))
+    for rule in load_rules(version):
+        if rule.status is not Status.PROHIBITED or not matches(rule.when, ctx):
+            continue
+        names_activity = any(leaf.field == "activity" for leaf in leaves(rule.when))
+        cites_section_6 = any(clause.split(".")[0] == "6" for clause in rule.clauses)
+        if names_activity and cites_section_6:
+            return True
+    return False
+
+
+#: The activity is the one input a route must never touch. It is what the
+#: person is trying to do; a "safe way" that changes it has not found a way
+#: to do the thing asked about, it has proposed a different question. The
+#: What if… chips still show activity flips, where they are offered as
+#: comparisons rather than as advice.
+ROUTE_EXCLUDED: frozenset[str] = frozenset({"activity"})
+
+#: How much a change preserves the original question, most preserving first.
+#: Putting a control in place (an allowlist, a cap, a human reviewer) leaves
+#: the work untouched. Moving to an approved tool leaves the work untouched
+#: too. Reclassifying the data, last, means taking the sensitive part out,
+#: which is a real answer but a larger one. A field not named here sorts
+#: after everything that is.
+ROUTE_FIELD_ORDER: tuple[str, ...] = (
+    "tool",
+    "host",
+    "human_review",
+    "client_contract_allows",
+    "payee_on_allowlist",
+    "recipient_on_allowlist",
+    "within_caps",
+    "agent_action",
+    "meeting_type",
+    "training_or_finetuning",
+    "data_class",
+    "data_kind",
+)
+
+
+def _route_rank(field: str) -> int:
+    try:
+        return ROUTE_FIELD_ORDER.index(field)
+    except ValueError:
+        return len(ROUTE_FIELD_ORDER)
+
+
+def safe_route(
+    inputs: Inputs,
+    version: str,
+    fields: list[str],
+    max_changes: int = 2,
+) -> Route | None:
+    """The smallest set of changes that reaches a gentler answer.
+
+    One change is searched before two, so the shortest way out is the one
+    offered. Within a size the gentlest answer wins; between two routes to
+    the same answer, the one that disturbs the question least wins, by
+    `ROUTE_FIELD_ORDER`. Every candidate is run through `evaluate`: the route
+    is found, never predicted.
+
+    Returns None when the activity is a Section 6 hard line, when nothing
+    useful is changeable, or when no combination of changes helps.
+    """
+    if is_hard_line(inputs, version):
+        return None
+
+    current = _SEVERITY[evaluate(inputs, version).status]
+    if current == 0:
+        return None
+
+    movable = sorted(
+        (
+            field
+            for field in fields
+            if field not in ROUTE_EXCLUDED and _alternatives(getattr(inputs, field, None))
+        ),
+        key=_route_rank,
+    )
+
+    for size in range(1, max_changes + 1):
+        best: Route | None = None
+        best_key: tuple[int, int] | None = None
+        for combination in combinations(movable, size):
+            cost = sum(_route_rank(field) for field in combination)
+            for values in product(*(_alternatives(getattr(inputs, f)) for f in combination)):
+                changes = tuple(
+                    Change(field=f, value=v) for f, v in zip(combination, values, strict=True)
+                )
+                try:
+                    altered = inputs.model_copy(
+                        update={change.field: change.value for change in changes}
+                    )
+                    status = evaluate(altered, version).status
+                except Exception:  # noqa: BLE001 - an impossible combination is not a route
+                    continue
+                if _SEVERITY[status] >= current:
+                    continue
+                key = (_SEVERITY[status], cost)
+                if best_key is None or key < best_key:
+                    best, best_key = Route(changes=changes, status=status), key
+        if best is not None:
+            return best
+    return None
