@@ -984,3 +984,191 @@ div[data-testid="stExpander"] details {
     font-size: 0.98rem;
   }
 }
+
+/* --- Matrix: headings, frontier, detail panel ------------------------- */
+
+/* The takeaway. The grid proves it — a test asserts the computed frontier
+   really is a staircase — so it is stated once, at the top, rather than
+   left for a reader to infer from fifteen squares. */
+.cu-takeaway {
+  margin: 0.3rem 0 0.1rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+/* The policy's own term, under the plain name it is a translation of. */
+.cu-grid-term,
+.cu-grid-eg {
+  display: block;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
+.cu-grid-term { font-size: 0.7rem; }
+
+.cu-grid-eg {
+  font-size: 0.68rem;
+  line-height: 1.3;
+  margin-top: 0.1rem;
+}
+
+.cu-grid-head { line-height: 1.25; }
+
+.cu-grid-row {
+  padding-top: 0.45rem;
+  line-height: 1.3;
+}
+
+/* The deciding clause, shown on a square in Expert view only. The generated
+   stylesheet hides this in Plain view. */
+.cu-grid-clauses {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.65rem;
+  color: var(--muted);
+}
+
+.cu-key__icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* The status icon on a card, when it is an SVG rather than a glyph: the
+   circle is already drawn, so it needs no second one behind it. */
+.cu-status__icon--svg {
+  background: none !important;
+  width: auto;
+  height: auto;
+}
+
+/* --- Matrix: the self-hosted grid ------------------------------------- */
+
+.st-key-cu_matrix_hosts [data-testid="stHorizontalBlock"] {
+  flex-wrap: nowrap;
+  gap: 0.25rem;
+}
+
+.st-key-cu_matrix_hosts [data-testid="stColumn"] {
+  min-width: 0 !important;
+}
+
+.cu-hostcell {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 2.5rem;
+  padding: 0.3rem 0.4rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.cu-hostcell--allowed { background: var(--allowed-tint); border: 1px solid var(--allowed); }
+.cu-hostcell--needs-approval {
+  background: var(--needs-approval-tint);
+  border: 1px solid var(--needs-approval);
+}
+.cu-hostcell--not-permitted {
+  background: var(--not-permitted-tint);
+  border: 1px solid var(--not-permitted);
+}
+.cu-hostcell--prohibited { background: var(--prohibited-tint); border: 1px solid var(--prohibited); }
+
+.cu-hostcell__icon { display: inline-flex; flex: 0 0 auto; }
+
+/* --- Matrix: the detail panel ----------------------------------------- */
+
+/* On a wide screen it sits beside the grid, so a square and its reason are
+   on screen together and the grid never scrolls out of view. */
+.st-key-cu_matrix_detail,
+.st-key-cu_matrix_hint {
+  position: sticky;
+  top: 4.5rem;
+}
+
+.st-key-cu_matrix_detail {
+  padding: 0.75rem 0.85rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-height: 78vh;
+  overflow-y: auto;
+}
+
+.st-key-cu_matrix_close .stButton button {
+  float: right;
+  font-size: 0.75rem;
+  min-height: 1.8rem;
+  padding: 0 0.4rem;
+}
+
+/* On a phone the grid fills the screen, so the detail arrives as a sheet
+   over the foot of it rather than as something to scroll down and find.
+   Only when a square is chosen: with nothing selected the hint stays in
+   the flow, where it is an instruction and not an interruption. */
+@media (max-width: 768px) {
+  .st-key-cu_matrix_detail {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    z-index: 95;
+    max-height: 62vh;
+    border: none;
+    border-top: 3px solid var(--border-strong);
+    border-radius: var(--radius) var(--radius) 0 0;
+    box-shadow: 0 -6px 20px rgba(28, 36, 48, 0.16);
+    padding: 0.5rem var(--gutter) calc(0.75rem + env(safe-area-inset-bottom));
+  }
+
+  /* The handle, so the sheet reads as one. */
+  .st-key-cu_matrix_detail::before {
+    content: "";
+    display: block;
+    width: 2.5rem;
+    height: 0.25rem;
+    margin: 0 auto 0.4rem;
+    border-radius: 999px;
+    background: var(--border-strong);
+  }
+
+  .st-key-cu_matrix_hint { position: static; }
+
+  .st-key-cu_matrix [data-testid="stHorizontalBlock"] { gap: 0.2rem; }
+
+  /* A square is about 95px wide here, and "Use a safer tool" does not fit
+     on one line. Ellipsis would leave it saying "Use a …", so it wraps
+     and the square grows instead. */
+  .st-key-cu_matrix .stButton button {
+    font-size: 0.7rem;
+    padding-left: 1.5rem !important;
+    padding-right: 0.25rem;
+    background-position: 0.25rem center !important;
+    white-space: normal;
+    line-height: 1.15;
+    min-height: 3.2rem;
+    height: auto;
+    padding-block: 0.35rem;
+  }
+
+  /* Give the squares the width back: the row label needs far less of it
+     than the reading-width layout assumes, and every pixel it gives up is
+     a pixel "Use a safer tool" does not have to wrap into. */
+  .st-key-cu_matrix [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:first-child {
+    flex: 0 0 21% !important;
+    width: 21% !important;
+  }
+
+  .st-key-cu_matrix .stButton button p {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  .cu-grid-eg { display: none; }
+}

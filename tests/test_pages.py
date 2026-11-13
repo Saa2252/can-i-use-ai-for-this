@@ -7,13 +7,14 @@ from pathlib import Path
 import pytest
 from streamlit.testing.v1 import AppTest
 
+from app.components.grid import CELL_LABELS, EXAMPLES, ITEMS, safer_route
 from app.components.scenario_text import describe_scenario
 from app.components.tiers import tier_a_conditions
 from app.styles.tokens import STATUS_STYLES
 from engine.models import Activity, DataClass, Inputs, Status, Tool
 from engine.policy_parser import load_policy
 from engine.rules import JURISDICTION_LENSES, applies_in, evaluate, load_basis
-from engine.scenarios import QUIZ_LOCKED, load_scenarios
+from engine.scenarios import QUIZ_LOCKED, load_scenarios, scenario
 
 ENTRYPOINT = str(Path(__file__).resolve().parent.parent / "app" / "main.py")
 TIMEOUT = 40
@@ -99,14 +100,141 @@ def test_matrix_renders_a_cell_per_class_and_tier():
             assert f"cu_cell_{data_class.value}_{tier}" in keys
 
 
+def test_matrix_opens_on_the_grid_with_nothing_selected():
+    """Fifteen verdicts are on screen already, so the page has its answer.
+    Asking which square first would be asking a reader to choose before
+    there is anything to choose between."""
+    at = open_page("matrix")
+    page = body(at)
+    assert "Tap any square to see why." in page
+    assert "What it means" not in page
+
+
 def test_matrix_cell_opens_the_rule_and_an_example():
     at = open_page("matrix")
     at.button(key="cu_cell_Confidential_C").click().run()
     page = body(at)
-    assert "Confidential data in a Tier C tool" in page
+    assert "Confidential data" in page
+    assert "Personal or free AI (Tier C)" in page
     assert "client contract into personal ChatGPT" in page
-    assert STATUS_STYLES[Status.PROHIBITED].word in page
+    assert CELL_LABELS[Status.PROHIBITED] in page
     assert "6.7" in page
+
+
+def test_the_detail_card_is_in_the_order_the_redesign_asks_for():
+    at = open_page("matrix")
+    at.button(key="cu_cell_Confidential_B").click().run()
+    page = body(at)
+    for heading in ("What it means", "Example", "Why it matters", "Safer route"):
+        assert heading in page, f"{heading} missing from the detail card"
+    assert (
+        page.index("What it means")
+        < page.index("Example")
+        < page.index("Why it matters")
+        < page.index("Safer route")
+        < page.index("What decided it")
+    )
+
+
+def test_the_safer_route_is_computed_from_the_row():
+    """Confidential is blocked in a Tier B tool and allowed in a Tier A one,
+    and the route is found by running the rules along the row."""
+    at = open_page("matrix")
+    at.button(key="cu_cell_Confidential_B").click().run()
+    assert "Company-approved AI" in body(at)
+    assert safer_route(DataClass.CONFIDENTIAL, Tool.TIER_B) == (Tool.TIER_A, Status.ALLOWED)
+
+
+def test_a_row_with_no_allowed_cell_says_so_rather_than_inventing_one():
+    """Secrets is Never in every tier. Offering a route would be a lie the
+    grid itself contradicts."""
+    assert safer_route(DataClass.SECRETS, Tool.TIER_C) is None
+    at = open_page("matrix")
+    at.button(key="cu_cell_Secrets_C").click().run()
+    assert "No tool on this row is better" in body(at)
+
+
+def test_the_four_cell_labels_are_the_legend_and_the_squares():
+    """One vocabulary: a square and the key above it must not disagree."""
+    at = open_page("matrix")
+    page = body(at)
+    for label in CELL_LABELS.values():
+        assert label in page, f"{label} is not on the page"
+
+    labels = {
+        button.label.split("  ")[0] for button in at.button if button.key.startswith("cu_cell_")
+    }
+    assert labels <= set(CELL_LABELS.values())
+
+
+def test_plain_view_hides_the_clause_numbers_and_expert_shows_them():
+    at = open_page("matrix")
+    plain = {b.label for b in at.button if b.key.startswith("cu_cell_")}
+    assert all("7.1" not in label for label in plain)
+
+    at.radio(key="cu_matrix_view").set_value("Expert").run()
+    expert = {b.label for b in at.button if b.key.startswith("cu_cell_")}
+    assert any("7.1" in label for label in expert)
+
+
+def test_the_grid_is_a_staircase_which_is_what_the_takeaway_claims():
+    """ "The more sensitive the data, the more trusted the tool must be." The
+    page states that once, at the top, so it had better be true of every row
+    the engine computes: a tool that cannot hold a class of data cannot hold
+    anything more sensitive either, and nor can any less trusted tool."""
+    tiers = [Tool.TIER_A, Tool.TIER_B, Tool.TIER_C]
+    classes = list(DataClass)
+    allowed = {
+        (c, t): evaluate(Inputs(data_class=c, tool=t, activity=Activity.DRAFTING), "v1_6").status
+        is Status.ALLOWED
+        for c in classes
+        for t in tiers
+    }
+    for row, data_class in enumerate(classes):
+        for column, tool in enumerate(tiers):
+            if not allowed[(data_class, tool)]:
+                for lower in classes[row:]:
+                    for righter in tiers[column:]:
+                        assert not allowed[(lower, righter)], (
+                            f"{data_class.value}/{tool.value} is not allowed but "
+                            f"{lower.value}/{righter.value} is, so the grid is not a staircase"
+                        )
+
+
+def test_the_self_hosted_grid_is_behind_a_toggle_and_follows_b_1_3():
+    at = open_page("matrix")
+    assert "Our servers or cloud" not in body(at)
+
+    at.toggle(key="cu_matrix_selfhosted").set_value(True).run()
+    page = body(at)
+    for host in ("Our servers or cloud", "A managed laptop", "A personal device"):
+        assert host in page
+    assert "B.1.3" in page
+
+
+def test_the_sorting_game_scores_from_the_engine_and_stores_nothing():
+    at = open_page("matrix")
+    first = ITEMS[0][0]
+    expected = [
+        tool
+        for tool in (Tool.TIER_A, Tool.TIER_B, Tool.TIER_C)
+        if evaluate(
+            Inputs(
+                data_class=scenario(first).inputs.data_class,
+                tool=tool,
+                activity=Activity.DRAFTING,
+            ),
+            "v1_6",
+        ).status
+        is Status.ALLOWED
+    ]
+    assert expected, "the first item should have at least one home"
+
+    at.button(key=f"cu_sort_{expected[0].value}").click().run()
+    page = body(at)
+    assert "Right" in page
+    assert "1 right so far" in page or "Item" in page
+    assert "%" not in page
 
 
 def test_matrix_explains_what_the_tiers_mean():
@@ -230,12 +358,9 @@ def test_limits_page_reports_the_real_verification_dates():
 
 def test_every_matrix_cell_has_an_example():
     """All 15 cells, so no cell can open onto an empty detail panel."""
-    source = (Path(__file__).resolve().parent.parent / "app" / "views" / "2_matrix.py").read_text(
-        encoding="utf-8"
-    )
     for data_class in DataClass:
-        for tier in ("TIER_A", "TIER_B", "TIER_C"):
-            assert f"(DataClass.{data_class.name}, Tool.{tier})" in source
+        for tool in (Tool.TIER_A, Tool.TIER_B, Tool.TIER_C):
+            assert EXAMPLES.get((data_class, tool)), f"no example for {data_class}/{tool}"
 
 
 # --------------------------------------------------------------------------
