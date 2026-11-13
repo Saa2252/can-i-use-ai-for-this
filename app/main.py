@@ -14,6 +14,11 @@ root runs this file as the v1 home page, which calls `st.navigation` and
 flips the process to v2 for good. It only bites a visitor who opens a deep
 link as the first request after the app wakes: they get a traceback, and so
 does everyone after them until someone loads the root. Hence `views/`.
+
+This file also carries the reload guard below, because it is the only file
+that is certainly current: a hosted Streamlit re-executes the entry script
+and the page scripts from source on every run, but keeps imported modules
+in `sys.modules` for the life of the process.
 """
 
 from __future__ import annotations
@@ -25,7 +30,85 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+#: Everything whose contents a running process can hold stale: our own
+#: modules, the rulesets they cache with `lru_cache`, and the policy files
+#: the parser caches the same way. The stylesheet is not here, because
+#: `shell._stylesheet` reads it from disk on every run already.
+SOURCES: tuple[tuple[str, str], ...] = (
+    ("app", "*.py"),
+    ("engine", "*.py"),
+    ("engine", "*.yaml"),
+    ("policy", "*.md"),
+)
+
+#: The packages dropped when the source has moved on. Both are ours; nothing
+#: from site-packages is ever touched.
+OURS: tuple[str, ...] = ("app", "engine")
+
+
+def source_fingerprint(root: Path = PROJECT_ROOT) -> str:
+    """The newest modification time across everything a process can cache."""
+    newest = 0.0
+    for folder, pattern in SOURCES:
+        for path in (root / folder).rglob(pattern):
+            newest = max(newest, path.stat().st_mtime)
+    return f"{newest:.6f}"
+
+
+def reload_if_source_changed(root: Path = PROJECT_ROOT) -> str:
+    """Drop our own modules when the files behind them have changed.
+
+    A deploy on a hosted Streamlit updates the checkout and re-runs the
+    scripts, but the process keeps every module it has already imported. So
+    a new page script runs against the previous commit's modules: it asks
+    for a name that did not exist yet and the app dies on the import, or
+    worse, it calls a function that quietly behaves like the old version.
+    Reboot is supposed to prevent that and has not reliably done so.
+
+    The fix is to notice. The fingerprint of the last import is kept on the
+    freshly imported `engine` package, so it is dropped and rewritten with
+    the modules it describes and cannot outlive them. When it matches, this
+    costs one `stat` per file and changes nothing.
+
+    Nothing is dropped the first time a process gets here, only recorded. A
+    process that has just started already holds the current files, so there
+    is nothing stale to clear, and pulling modules out from under whatever
+    imported them first is a real cost to pay for no gain. Only a
+    fingerprint that has *changed* means a deploy landed under a process
+    that was already running, which is the one case this exists for.
+    """
+    fingerprint = source_fingerprint(root)
+
+    engine = sys.modules.get("engine")
+    seen = getattr(engine, "__source_fingerprint__", None) if engine is not None else None
+
+    if seen != fingerprint and seen is not None:
+        for name in [
+            name
+            for name in sys.modules
+            if name in OURS or name.startswith(tuple(f"{package}." for package in OURS))
+        ]:
+            del sys.modules[name]
+
+    import engine as reloaded
+
+    reloaded.__source_fingerprint__ = fingerprint
+    return fingerprint
+
+
+BUILD = reload_if_source_changed()
+
 import streamlit as st  # noqa: E402  (must follow the sys.path bootstrap)
+
+# A session started before a deploy holds values built by the modules that
+# have just been dropped: enum members whose class no longer exists. The
+# matcher compares with `type(a) is type(value)`, so those would not match
+# any rule rather than failing loudly. Clearing the session is the cheap,
+# safe answer; the URL still carries the question, so the page re-seeds
+# itself from it on the very next line of work.
+if st.session_state.get("_cu_build") != BUILD:
+    st.session_state.clear()
+    st.session_state["_cu_build"] = BUILD
 
 st.set_page_config(
     page_title="Can I use AI for this?",
