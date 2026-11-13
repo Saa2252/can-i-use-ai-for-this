@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from streamlit.testing.v1 import AppTest
 
+from app.components.agent import Licence
 from app.components.grid import CELL_LABELS, EXAMPLES, ITEMS, safer_route
 from app.components.scenario_text import describe_scenario
 from app.components.tiers import tier_a_conditions
@@ -394,49 +395,54 @@ def test_switching_on_payments_shows_the_required_controls():
     page = body(at)
     assert STATUS_STYLES[Status.NEEDS_APPROVAL].word in page
     assert "Required controls" in page
-    assert "8.5" in page
 
 
-def test_agent_builder_shows_both_irreversible_exceptions_and_their_conditions():
+def test_the_three_keys_appear_only_under_an_action_that_has_an_allowance():
+    """11.3 names three conditions, and only for its two exceptions. Showing
+    them anywhere else would imply an allowance the policy does not give."""
     at = open_page("agents")
-    # The heading is the expander's label, which `body` does not collect. It
-    # is named for whichever exception the loaded agent engages, and generic
-    # when none is, so either wording counts here; the point of this test is
-    # that both exceptions and all of their conditions are on the page.
-    assert any(
-        "two exceptions" in e.label or "without a human each time" in e.label for e in at.expander
-    )
-    page = body(at)
-    assert "The payee is on the allowlist" in page
-    assert "The recipient is on the allowlist" in page
-    assert "within the rate limit" in page
-    assert "The Committee has accepted that risk for the use case" in page
-
-
-def test_the_exceptions_panel_names_the_capability_that_is_switched_on():
-    """Named after the capability that engages it, generic when none does.
-
-    Always-open, this block was most of the page, and a reader met the
-    payment allowlist rules before switching payments on. AppTest does not
-    expose an expander's open state, so the heading is what is checked.
-    """
-    at = open_page("agents")
-    # The page opens on the Support agent, which sends messages outside the
-    # organization, so the panel is already named for that exception.
-    opening = next(
-        e for e in at.expander if "exception" in e.label.lower() or "message" in e.label.lower()
-    )
-    assert "without a human each time" in opening.label
-
-    at.button(key="cu_preset_clear").click().run()
-    generic = next(e for e in at.expander if "exception" in e.label.lower())
-    assert "two exceptions" in generic.label
+    # The Support agent sends messages outside, so those three are on screen.
+    keys = {toggle.key for toggle in at.toggle}
+    assert "cu_allow_message_external_recipient_on_allowlist" in keys
+    assert "cu_allow_message_external_within_caps" in keys
+    assert "cu_allow_message_external_committee" in keys
+    # Payments are off, so theirs are not.
+    assert "cu_allow_pay_payee_on_allowlist" not in keys
 
     at.toggle(key="cu_cap_pay").set_value(True).run()
-    specific = next(e for e in at.expander if "payment" in e.label.lower())
-    assert "without a human each time" in specific.label
-    # and it still carries the conditions, not just a new heading
-    assert "The payment is within the per-action and daily caps" in body(at)
+    keys = {toggle.key for toggle in at.toggle}
+    assert "cu_allow_pay_payee_on_allowlist" in keys
+    assert "cu_allow_pay_within_caps" in keys
+    assert "cu_allow_pay_committee" in keys
+
+
+def test_all_three_keys_make_it_automatic_and_any_one_missing_does_not():
+    """The whole point of the allowance: three keys, or a human each time."""
+    at = open_page("agents")
+    at.toggle(key="cu_cap_pay").set_value(True).run()
+    for key in ("payee_on_allowlist", "within_caps", "committee"):
+        at.toggle(key=f"cu_allow_pay_{key}").set_value(True).run()
+    assert Licence.AUTOMATIC.value in body(at)
+
+    at.toggle(key="cu_allow_pay_payee_on_allowlist").set_value(False).run()
+    page = body(at)
+    assert Licence.HUMAN_EACH.value in page
+
+
+def test_the_licence_never_lets_an_agent_widen_its_own_allowlist():
+    page = body(open_page("agents"))
+    assert Licence.NEVER.value in page
+    assert "Add a payee to its own allowlist" in page
+    assert "Add a recipient to its own allowlist" in page
+
+
+def test_the_licence_row_for_every_enabled_action_is_computed():
+    """One row per rung that is on, and the word on it comes from the engine."""
+    at = open_page("agents")
+    page = body(at)
+    for label in ("Read data", "Send messages outside the org"):
+        assert label in page
+    assert "Make payments" not in page.split("Agent licence")[1].split("Required controls")[0]
 
 
 def test_the_agents_page_opens_on_a_working_agent() -> None:
@@ -475,18 +481,35 @@ def test_the_risk_meter_quotes_b3_and_names_the_factor_that_set_the_level() -> N
     )
 
 
-def test_the_risk_meter_does_not_score_the_factors_the_page_never_asks() -> None:
-    """B.3 has five factors; two of them depend on what the agent is for."""
-    sentence = _meter_sentence(open_page("agents")).lower()
-    assert "effect on people and audience" in sentence
-    assert "this page does not score them" in sentence
-
-
-def test_agent_builder_contrasts_in_allowance_with_out_of_allowance():
+def test_the_impact_meter_scores_all_five_b3_factors() -> None:
+    """The earlier page scored three and said the other two depended on what
+    the agent was for. It asks now, so there is nothing left to assume."""
     at = open_page("agents")
     page = body(at)
-    assert "one-time use-case approval" in page
-    assert "human approval for each action" in page
+    for factor in load_policy("v1_6").table("B.3").rows:
+        assert factor[0] in page, f"{factor[0]} is not scored on the page"
+
+    labels = {s.label for s in at.selectbox}
+    assert "Effect on people" in labels
+    assert "Audience" in labels
+
+
+def test_the_impact_meter_reads_its_approver_and_cycle_from_b3() -> None:
+    """The second B.3 table, not a restatement of it."""
+    page = body(open_page("agents"))
+    assert "Default approver" in page
+    rows = {row[0]: row[1:] for row in load_policy("v1_6").table("B.3", 1).rows}
+    assert any(all(cell in page for cell in cells) for cells in rows.values()), (
+        "no B.3 level row is reproduced in full"
+    )
+
+
+def test_a_control_says_which_action_brought_it() -> None:
+    """Worked out by re-running the agent without that action, so a control
+    that would have been required anyway is never credited to a new switch."""
+    at = open_page("agents")
+    at.toggle(key="cu_cap_delete").set_value(True).run()
+    assert "+ added because you allowed delete things" in body(at)
 
 
 def test_agent_builder_says_an_agent_never_widens_its_own_allowlist():
@@ -495,11 +518,43 @@ def test_agent_builder_says_an_agent_never_widens_its_own_allowlist():
 
 
 def test_calling_other_agents_cites_11_9_and_c_6_1():
+    """Clauses live in Expert view now, attached to what they back."""
     at = open_page("agents")
     at.toggle(key="cu_cap_call_agents").set_value(True).run()
+    at.radio(key="cu_agent_view").set_value("Expert").run()
     page = body(at)
     assert "11.9" in page
     assert "C.6.1" in page
+
+
+def test_plain_view_attaches_no_clause_chips():
+    """They are reference, not the answer: Expert view is where they belong.
+
+    Checked as chips rather than as text, because a control's own wording
+    cites C.2 inside the sentence and that is the policy's words, not a
+    chip this page added.
+    """
+    at = open_page("agents")
+    plain = body(at)
+    assert 'class="cu-gate__clause"' not in plain
+
+    at.radio(key="cu_agent_view").set_value("Expert").run()
+    assert 'class="cu-gate__clause"' in body(at)
+
+
+def test_the_stress_test_is_computed_from_the_agent_on_screen():
+    """No hand-written outcomes: switch the capability off and the reason the
+    attack fails changes with it."""
+    at = open_page("agents")
+    page = body(at)
+    assert "ignore your instructions" in page
+    assert "cannot move money at all" in page, "payments are off, so that is why it fails"
+
+    at.toggle(key="cu_cap_pay").set_value(True).run()
+    at.toggle(key="cu_allow_pay_payee_on_allowlist").set_value(False).run()
+    page = body(at)
+    assert "cannot move money at all" not in page
+    assert "allowlist" in page
 
 
 # --------------------------------------------------------------------------

@@ -118,9 +118,16 @@ def test_clause_ids_written_in_app_code_exist_in_the_current_policy():
 
 
 def test_the_app_code_scan_actually_finds_clause_ids():
-    """Guard: a regex that matched nothing would make the test above vacuous."""
-    builder = (PROJECT_ROOT / "app" / "views" / "3_agent_builder.py").read_text(encoding="utf-8")
-    assert {"11.9", "C.6.1"} <= set(_CLAUSE_LITERAL.findall(builder))
+    """Guard: a regex that matched nothing would make the test above vacuous.
+
+    Scanned across `app/` rather than in one named file, so moving a literal
+    between a page and a component cannot quietly empty the check — which is
+    exactly what happened when the agent model moved out of the page.
+    """
+    found: set[str] = set()
+    for path in sorted((PROJECT_ROOT / "app").rglob("*.py")):
+        found |= set(_CLAUSE_LITERAL.findall(path.read_text(encoding="utf-8")))
+    assert {"11.9", "C.6.1"} <= found, f"the scan found only {sorted(found)}"
 
 
 def test_open_questions_file_is_not_empty():

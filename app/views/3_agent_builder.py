@@ -1,339 +1,468 @@
 """The agent permission builder (BUILD_SPEC 9.3).
 
-Switch on what the agent may do and the required controls appear, worked out
-by the rules engine from 11.x and C.x. The two irreversible-action exceptions
-are shown with the conditions that make them available, because they are the
-only two things an agent may do irreversibly without a human each time.
+Switch on what the agent may do and its licence changes: one row per action,
+saying whether the agent does it by itself, does it once something is
+approved, needs a human each time, or may never do it at all. Every row is
+`evaluate` answering a question about the configuration on screen.
 
-The page answers before it is touched: an agent with nothing switched on is
-still an agent, and 11.3 has an answer for it, so the verdict card is on
-screen from the first paint rather than appearing once a toggle is flipped.
+The page has no empty state. An agent with nothing switched on is still an
+agent and 11.3 has an answer for it, so reading is the first rung of the
+ladder and it cannot be switched off: "agents are read-only by default" is
+the floor, not a choice a reader has to find.
+
+Everything the impact level depends on is asked out loud. The earlier
+version scored three of B.3's five factors and said the other two depended on
+what the agent was for; the page now asks what it is for, with B.3's own
+cells as the options, so there is nothing left for it to assume.
 """
 
 from __future__ import annotations
 
 import streamlit as st
 
+from app.components.agent import (
+    ALLOWANCE_FIELDS,
+    ATTACKS,
+    CAPABILITIES,
+    FACTORS,
+    LEVEL_NAMES,
+    PRESETS,
+    SYSTEMS,
+    Config,
+    Licence,
+    added_by,
+    controls,
+    factor_levels,
+    impact,
+    levels_table,
+    licence,
+    overall,
+    rubric,
+    stress,
+)
 from app.components.clause_drawer import render_clause_chips, render_clause_drawer
 from app.components.footer import render_footer
+from app.components.icons import rule as icon_rule
+from app.components.risk import data_class_scale
 from app.components.shell import escape, inject_styles, page_header
-from app.styles.tokens import APPROVAL_LABELS, style_for
-from engine.models import (
-    Activity,
-    AgentAction,
-    DataClass,
-    Inputs,
-    Status,
-    Tool,
-    most_severe,
-)
-from engine.policy_parser import load_policy
-from engine.rules import evaluate
+from app.styles.tokens import TOKENS, style_for
+from engine.models import DataClass
 
 VERSION = "v1_6"
 
-#: The capabilities BUILD_SPEC 9.3 asks for, in order.
-CAPABILITIES: tuple[tuple[str, AgentAction | None, str], ...] = (
-    ("read", AgentAction.READ, "Read data"),
-    ("write", AgentAction.WRITE, "Write or change records"),
-    ("pay", AgentAction.PAY, "Make payments"),
-    ("delete", AgentAction.DELETE, "Delete things"),
-    ("message_external", AgentAction.MESSAGE_EXTERNAL, "Send messages outside the org"),
-    ("production_change", AgentAction.PRODUCTION_CHANGE, "Change production systems"),
-    ("call_agents", None, "Call other agents"),
-)
+OPENED = "cu_agent_opened"
+VIEW = "cu_agent_view"
+DATA_CLASS = "cu_agent_data"
+SYSTEMS_KEY = "cu_agent_systems"
+EFFECT = "cu_agent_effect"
+AUDIENCE = "cu_agent_audience"
+JOB = "cu_agent_job"
 
-#: Three agents a reader will recognise. Without these the page opens as seven
-#: unlabelled switches and a reader has to guess which combinations are
-#: interesting; each of these lands on a different verdict.
-PRESETS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
-    ("Support agent", "Reads tickets and replies to customers", ("read", "message_external")),
-    ("Invoice agent", "Reads invoices and pays suppliers", ("read", "pay")),
-    ("Deploy bot", "Edits records and ships to production", ("read", "write", "production_change")),
-)
-
-#: The page opens on this one, so a reader meets a working agent and a real
-#: verdict rather than seven switches that are all off.
-OPENING_PRESET = "Support agent"
-OPENED_FLAG = "cu_agent_opened"
-
-#: B.3 scores five factors and takes the highest. Three of them follow from
-#: the switches on this page. "Effect on people" and "Audience" depend on what
-#: the agent is for, which this page never asks, so they are named as not
-#: scored rather than guessed at (BUILD_SPEC 0.1).
-SCORED = ("Data", "Autonomy", "Reversibility")
-UNSCORED = ("Effect on people", "Audience")
-LEVEL_NAMES = ("Low", "Medium", "High")
-LEVEL_SLUGS = ("low", "medium", "high")
-
-#: The actions 11.3 treats as irreversible, which is what sets the
-#: Reversibility factor. PAY and MESSAGE_EXTERNAL are the two with exceptions.
-IRREVERSIBLE = {
-    AgentAction.PAY,
-    AgentAction.DELETE,
-    AgentAction.PRODUCTION_CHANGE,
-    AgentAction.MESSAGE_EXTERNAL,
+#: How a licence row reads. The word comes from the engine; the colour is the
+#: nearest verdict tint, so the ladder and the card agree at a glance.
+LICENCE_SLUG: dict[Licence, str] = {
+    Licence.AUTOMATIC: "allowed",
+    Licence.CONDITIONAL: "needs-approval",
+    Licence.HUMAN_EACH: "not-permitted",
+    Licence.NEVER: "prohibited",
 }
 
-#: Calling other agents is a new use case rather than an action the engine
-#: scores, so it contributes these clauses directly (11.9, C.6.1).
-MULTI_AGENT_CLAUSES = ["11.9", "C.6.1"]
-MULTI_AGENT_CONTROLS = [
-    "Connecting agents to each other is a new use case and goes through approval",
-    "Connected agents are assessed as one system, and no agent gains rights through another",
-]
+
+# --------------------------------------------------------------------------
+# Reading the page back as a configuration
+# --------------------------------------------------------------------------
 
 
-def _inputs_for(action: AgentAction | None, **flags) -> Inputs:
-    return Inputs(
-        data_class=DataClass.CONFIDENTIAL,
-        tool=Tool.TIER_A,
-        activity=Activity.AGENT,
-        agent_action=action,
-        **flags,
+def _config() -> Config:
+    allowance = {
+        key: {
+            field: bool(st.session_state.get(f"cu_allow_{key}_{field}", True)) for field in fields
+        }
+        for key, fields in ALLOWANCE_FIELDS.items()
+    }
+    committee = {
+        key: bool(st.session_state.get(f"cu_allow_{key}_committee", False))
+        for key in ALLOWANCE_FIELDS
+    }
+    return Config(
+        capabilities=tuple(
+            capability.key
+            for capability in CAPABILITIES
+            if capability.fixed or st.session_state.get(f"cu_cap_{capability.key}")
+        ),
+        data_class=st.session_state.get(DATA_CLASS) or DataClass.CONFIDENTIAL,
+        systems=tuple(st.session_state.get(SYSTEMS_KEY) or ()),
+        effect=int(st.session_state.get(EFFECT) or 0),
+        audience=int(st.session_state.get(AUDIENCE) or 0),
+        allowance=allowance,
+        committee=committee,
     )
 
 
-def _enabled() -> list[tuple[str, AgentAction | None, str]]:
-    return [cap for cap in CAPABILITIES if st.session_state.get(f"cu_cap_{cap[0]}")]
+def _load_preset(label: str) -> None:
+    """Button callback: a preset replaces the agent rather than adding to it."""
+    preset = next(entry for entry in PRESETS if entry.label == label)
+    for capability in CAPABILITIES:
+        st.session_state[f"cu_cap_{capability.key}"] = capability.key in preset.capabilities
+    st.session_state[DATA_CLASS] = preset.data_class
+    st.session_state[SYSTEMS_KEY] = list(preset.systems)
+    st.session_state[JOB] = preset.job
+    st.session_state[EFFECT] = preset.effect
+    st.session_state[AUDIENCE] = preset.audience
+    # A preset describes an agent, not its paperwork: the conditions start met
+    # and the Committee has not yet looked at it.
+    for key, fields in ALLOWANCE_FIELDS.items():
+        for field in fields:
+            st.session_state[f"cu_allow_{key}_{field}"] = True
+        st.session_state[f"cu_allow_{key}_committee"] = False
 
 
-def _load_preset(keys: tuple[str, ...]) -> None:
-    """Button callback: set every switch, so a preset replaces rather than adds."""
-    for key, _action, _label in CAPABILITIES:
-        st.session_state[f"cu_cap_{key}"] = key in keys
-
-
-def _clear() -> None:
-    _load_preset(())
-
-
-def _consequence(action: AgentAction | None) -> str:
-    """What switching this one on does on its own, straight from the engine."""
-    if action is None:
-        return "A new use case on its own: goes through approval (11.9)."
-    verdict = evaluate(_inputs_for(action), VERSION)
-    word = style_for(verdict.status).word
-    extra = APPROVAL_LABELS.get(verdict.approval_kind, "")
-    return f"On its own: {word}{f' ({extra})' if extra else ''}."
-
-
-def _factor_levels(enabled: list[tuple[str, AgentAction | None, str]]) -> dict[str, int]:
-    """Each scored B.3 factor as a column index: 0 Low, 1 Medium, 2 High."""
-    actions = {action for _k, action, _l in enabled if action}
-
-    # Every question on this page is asked at Confidential (see _inputs_for),
-    # which B.3 puts in the Medium column of the Data row.
-    levels = {"Data": 1}
-
-    if actions & IRREVERSIBLE:
-        levels["Reversibility"] = 2
-    elif AgentAction.WRITE in actions:
-        levels["Reversibility"] = 1
-    else:
-        levels["Reversibility"] = 0
-
-    # An agent that can only read produces output a human acts on. One that
-    # can change or send anything is acting within a pre-approved scope.
-    levels["Autonomy"] = 2 if actions - {AgentAction.READ} else 0
-    return levels
-
-
-def _b3_cell(factor: str, level: int) -> str:
-    """The policy's own words for one cell of the B.3 rubric."""
-    for row in load_policy(VERSION).table("B.3").rows:
-        if row[0] == factor:
-            return row[level + 1]
-    return ""
-
-
-def _render_risk_meter(enabled: list[tuple[str, AgentAction | None, str]]) -> None:
-    """Low / Medium / High from B.3, and the factor that set it."""
-    levels = _factor_levels(enabled)
-    level = max(levels.values())
-    driver = next(f for f in SCORED if levels[f] == level)
-
-    steps = "".join(
-        f'<span class="cu-meter__step'
-        f'{f" cu-meter__step--on-{LEVEL_SLUGS[index]}" if index == level else ""}">'
-        f"{escape(name)}</span>"
-        for index, name in enumerate(LEVEL_NAMES)
-    )
-    st.html(
-        f'<p class="cu-label">Impact level (B.3)</p>'
-        f'<div class="cu-meter">{steps}</div>'
-        f'<p class="cu-hint">The highest factor sets the level. Here that is '
-        f"<strong>{escape(driver.lower())}</strong>: "
-        f"{escape(_b3_cell(driver, level).lower())}. "
-        f"{escape(' and '.join(UNSCORED))} depend on what the agent is for, "
-        f"so this page does not score them.</p>"
-    )
+# --------------------------------------------------------------------------
+# Inputs
+# --------------------------------------------------------------------------
 
 
 def _render_presets() -> None:
     st.html('<p class="cu-label">Start from an example</p>')
-    with st.container(horizontal=True, gap="small"):
-        for label, description, keys in PRESETS:
+    with st.container(horizontal=True, gap="small", key="cu_agent_presets"):
+        for preset in PRESETS:
             st.button(
-                label,
-                key=f"cu_preset_{label.replace(' ', '_').lower()}",
+                preset.label,
+                key=f"cu_preset_{preset.label.replace(' ', '_').lower()}",
                 on_click=_load_preset,
-                args=(keys,),
-                help=description,
+                args=(preset.label,),
+                help=preset.job,
                 width="content",
             )
-        st.button("Clear", key="cu_preset_clear", on_click=_clear, width="content")
+        st.button(
+            "Clear",
+            key="cu_preset_clear",
+            on_click=_load_preset,
+            args=("Support agent",),
+            width="content",
+            help="Back to the read-only agent this page opens on.",
+        )
 
 
-def _render_toggles() -> None:
-    st.markdown("## What may the agent do?")
-    for key, action, label in CAPABILITIES:
-        st.toggle(label, key=f"cu_cap_{key}", help=_consequence(action))
+def _render_job() -> None:
+    st.html(f'<p class="cu-next">{escape(st.session_state.get(JOB, ""))}</p>')
 
 
-def _render_rollup(enabled: list[tuple[str, AgentAction | None, str]]) -> None:
-    """The verdict for the agent as configured, including the empty one."""
-    scored = [evaluate(_inputs_for(action), VERSION) for _k, action, _l in enabled if action]
-    multi_agent = any(key == "call_agents" for key, _a, _l in enabled)
+def _render_scope() -> None:
+    """What the agent handles and what it can reach: visible, never assumed."""
+    left, right = st.columns(2, gap="small")
+    with left:
+        st.selectbox(
+            "What data does it handle?",
+            options=list(DataClass),
+            format_func=lambda value: value.value,
+            key=DATA_CLASS,
+            help="This sets the Data row of the B.3 rubric below.",
+        )
+    with right:
+        st.multiselect(
+            "What can it reach?",
+            options=SYSTEMS,
+            key=SYSTEMS_KEY,
+            help="C.2 requires an allowlist of the systems an agent may read or write.",
+        )
 
-    if not enabled:
-        verdict = evaluate(_inputs_for(None), VERSION)
-        statuses = [verdict.status]
-        scored = [verdict]
-    else:
-        statuses = [v.status for v in scored]
-        if multi_agent:
-            statuses.append(Status.NEEDS_APPROVAL)
+    cells = rubric()
+    effect_left, audience_right = st.columns(2, gap="small")
+    with effect_left:
+        st.selectbox(
+            "Effect on people",
+            options=(0, 1, 2),
+            format_func=lambda level: cells["Effect on people"][level],
+            key=EFFECT,
+        )
+    with audience_right:
+        st.selectbox(
+            "Audience",
+            options=(0, 1, 2),
+            format_func=lambda level: cells["Audience"][level],
+            key=AUDIENCE,
+        )
+    st.html(
+        '<p class="cu-meta">Those two are B.3\'s own wording, taken from the '
+        "rubric rather than rephrased.</p>"
+    )
 
-    status = most_severe(statuses)
+
+def _render_ladder(config: Config) -> None:
+    """The permission ladder, in the order 11.3 lists the actions."""
+    st.markdown("## What may it do?")
+    st.html(
+        '<p class="cu-hint">In risk order. Reading is the first rung and stays '
+        "on: 11.3 makes agents read-only by default, so it is the floor rather "
+        "than a choice.</p>"
+    )
+
+    for capability in CAPABILITIES:
+        st.toggle(
+            capability.label,
+            key=f"cu_cap_{capability.key}",
+            value=True if capability.fixed else None,
+            disabled=capability.fixed,
+            help="Read-only by default (11.3)." if capability.fixed else None,
+        )
+        if config.has(capability.key) and capability.key in ALLOWANCE_FIELDS:
+            _render_three_keys(capability.key, capability.label)
+
+
+def _render_three_keys(key: str, label: str) -> None:
+    """The three conditions 11.3 names for an unattended irreversible action."""
+    fields = ALLOWANCE_FIELDS[key]
+    names = {
+        "payee_on_allowlist": "The payee is on the allowlist",
+        "recipient_on_allowlist": "The recipient is on the allowlist",
+        "within_caps": "Within the caps" if key == "pay" else "Within the rate limit",
+    }
+    with st.container(key=f"cu_keys_{key}"):
+        st.html(f'<p class="cu-meta">Three keys for {escape(label.lower())} (11.3, C.2)</p>')
+        for field in fields:
+            st.toggle(names[field], key=f"cu_allow_{key}_{field}")
+        st.toggle(
+            "The Committee has accepted that risk",
+            key=f"cu_allow_{key}_committee",
+            help="What a one-time use-case approval is (11.3).",
+        )
+
+
+# --------------------------------------------------------------------------
+# The licence
+# --------------------------------------------------------------------------
+
+
+def _render_licence(config: Config, expert: bool) -> None:
+    status = overall(config)
     style = style_for(status)
-
-    doing = ", ".join(label.lower() for _k, _a, label in enabled)
-    summary = f"This agent may {doing}." if enabled else "Nothing is switched on yet."
     st.html(
         f'<div class="cu-card cu-card--{style.slug}">'
-        f'<p class="cu-status">'
-        f'<span class="cu-status__icon" aria-hidden="true">{style.icon}</span>'
+        f'<p class="cu-status"><span class="cu-status__icon cu-status__icon--svg '
+        f'cu-icon cu-icon--{style.slug}"></span>'
         f"<span>{escape(style.word)}</span></p>"
-        f'<p class="cu-subtitle">{escape(style.subtitle)}</p>'
-        f'<p class="cu-reason">{escape(summary)}</p></div>'
+        f'<p class="cu-subtitle">{escape(style.subtitle)}</p></div>'
     )
 
-    if not enabled:
-        st.html(
-            '<p class="cu-hint">A read-only agent is where 11.3 starts: it still '
-            "needs the standing controls below, and it needs approval the moment "
-            "it can change anything.</p>"
+    rows = licence(config)
+    html = []
+    for row in rows:
+        slug = LICENCE_SLUG[row.licence]
+        chips = (
+            "".join(f'<span class="cu-gate__clause">{escape(c)}</span>' for c in row.clauses)
+            if expert
+            else ""
+        )
+        html.append(
+            f'<li class="cu-licence cu-licence--{slug}">'
+            f'<span class="cu-licence__mark cu-icon cu-icon--{slug}"></span>'
+            f'<span class="cu-licence__body">'
+            f'<span class="cu-licence__head">{escape(row.label)}'
+            f'<span class="cu-licence__state">{escape(row.licence.value)}</span></span>'
+            f"{f'<span class="cu-licence__note">{escape(row.note)}</span>' if row.note else ''}"
+            f'<span class="cu-gate__clauses">{chips}</span>'
+            f"</span></li>"
+        )
+    st.html(
+        '<p class="cu-label">Agent licence</p>'
+        f'<ul class="cu-licence-list">{"".join(html)}</ul>'
+        '<p class="cu-meta">Each row is the engine answering for this agent, not a '
+        "table kept beside the rules.</p>"
+    )
+
+
+# --------------------------------------------------------------------------
+# Controls and the impact meter
+# --------------------------------------------------------------------------
+
+
+def _render_controls(config: Config, expert: bool) -> None:
+    every = controls(config)
+    credited: dict[str, str] = {}
+    for capability in CAPABILITIES:
+        if capability.fixed or not config.has(capability.key):
+            continue
+        for control in added_by(config, capability.key):
+            credited.setdefault(control, capability.label)
+
+    st.html(f'<p class="cu-label">Required controls <span class="cu-count">{len(every)}</span></p>')
+    rows = []
+    for control, clauses in every:
+        because = credited.get(control)
+        chips = (
+            "".join(f'<span class="cu-gate__clause">{escape(c)}</span>' for c in clauses)
+            if expert
+            else ""
+        )
+        why = (
+            f'<span class="cu-control__why">+ added because you allowed '
+            f"{escape(because.lower())}</span>"
+            if because
+            else ""
+        )
+        rows.append(
+            f'<li class="{"cu-control cu-control--new" if because else "cu-control"}">'
+            f"{escape(control)}{why}"
+            f'<span class="cu-gate__clauses">{chips}</span>'
+            f"</li>"
+        )
+    st.html(f'<ul class="cu-list cu-controls">{"".join(rows)}</ul>')
+
+
+def _render_impact(config: Config) -> None:
+    """All five B.3 factors, as bars, with the highest marked."""
+    levels = factor_levels(config)
+    level, driver = impact(config)
+    cells = rubric()
+    table = levels_table()
+    name = LEVEL_NAMES[level]
+
+    bars = []
+    for factor in FACTORS:
+        value = levels[factor]
+        steps = "".join(
+            f'<span class="cu-bar__step{" cu-bar__step--on" if index <= value else ""}'
+            f'{" cu-bar__step--peak" if factor == driver and index == value else ""}">'
+            f"</span>"
+            for index in range(3)
+        )
+        bars.append(
+            f'<li class="cu-bar{" cu-bar--driver" if factor == driver else ""}">'
+            f'<span class="cu-bar__name">{escape(factor)}</span>'
+            f'<span class="cu-bar__track">{steps}</span>'
+            f'<span class="cu-bar__cell">{escape(cells[factor][value])}</span>'
+            f"</li>"
         )
 
-    _render_risk_meter(enabled)
-
-    controls: list[str] = []
-    clauses: list[str] = []
-    for verdict in scored:
-        controls.extend(verdict.requirements)
-        clauses.extend(verdict.clauses)
-    if multi_agent:
-        controls.extend(MULTI_AGENT_CONTROLS)
-        clauses.extend(MULTI_AGENT_CLAUSES)
-
-    controls = list(dict.fromkeys(controls))
-    clauses = list(dict.fromkeys(clauses))
-
-    if controls:
-        rows = "".join(f"<li>{escape(control)}</li>" for control in controls)
-        st.html(f'<p class="cu-label">Required controls</p><ul class="cu-list">{rows}</ul>')
-
-    render_clause_chips(clauses)
-    render_clause_drawer(clauses, VERSION)
+    assessment, approver, review = table[name]
+    st.html(
+        f'<p class="cu-label">Impact level (B.3) '
+        f'<span class="cu-count cu-count--{name.lower()}">{escape(name)}</span></p>'
+        f'<ul class="cu-bars">{"".join(bars)}</ul>'
+        f'<p class="cu-hint">The highest factor sets the level. Here that is '
+        f"<strong>{escape(driver.lower())}</strong>: "
+        f"{escape(cells[driver][level].lower())}.</p>"
+        f'<table class="cu-fields"><tbody>'
+        f"<tr><th>Assessment</th><td>{escape(assessment)}</td></tr>"
+        f"<tr><th>Default approver</th><td>{escape(approver)}</td></tr>"
+        f"<tr><th>Review cycle</th><td>{escape(review)}</td></tr>"
+        f"</tbody></table>"
+        f'<p class="cu-meta">Read from B.3\'s own tables, not restated here.</p>'
+    )
 
 
-#: The only two irreversible actions an agent may take without a human each
-#: time, with the conditions that unlock them.
-EXCEPTIONS: tuple[tuple[AgentAction, str, list[str]], ...] = (
-    (
-        AgentAction.PAY,
-        "Payments",
-        ["The payee is on the allowlist", "The payment is within the per-action and daily caps"],
-    ),
-    (
-        AgentAction.MESSAGE_EXTERNAL,
-        "Messages outside the organization",
-        ["The recipient is on the allowlist", "It is within the rate limit"],
-    ),
-)
+# --------------------------------------------------------------------------
+# Stress test
+# --------------------------------------------------------------------------
 
 
-def _render_exceptions(enabled: list[tuple[str, AgentAction | None, str]]) -> None:
-    """The two exceptions, opened only when one of them is actually switched on.
+def _render_stress(config: Config, expert: bool) -> None:
+    st.markdown("## Try to break it")
+    st.html(
+        '<p class="cu-hint">Five things that get tried on agents. Each answer is '
+        "worked out from the agent above as it stands now.</p>"
+    )
 
-    Left always-open this was the bulk of the page, and a reader met the
-    allowlist rules for payments before switching payments on.
+    for attack in ATTACKS:
+        outcome = stress(config, attack)
+        slug = "allowed" if outcome.blocked else "prohibited"
+        chips = (
+            "".join(f'<span class="cu-gate__clause">{escape(c)}</span>' for c in outcome.clauses)
+            if expert
+            else ""
+        )
+        st.html(
+            f'<div class="cu-attack cu-attack--{slug}">'
+            f'<p class="cu-attack__what">{escape(attack.label)}</p>'
+            f'<p class="cu-attack__verdict">'
+            f'<span class="cu-icon cu-icon--{slug}"></span>'
+            f"<strong>{'Blocked' if outcome.blocked else 'Not blocked'}</strong> "
+            f"&middot; {escape(outcome.control)}</p>"
+            f'<span class="cu-gate__clauses">{chips}</span>'
+            f"</div>"
+        )
+
+
+# --------------------------------------------------------------------------
+# Page
+# --------------------------------------------------------------------------
+
+
+def _icon_styles() -> str:
+    """The four status icons, painted as CSS because st.html strips an SVG."""
+    return "".join(
+        icon_rule(f".cu-icon--{slug}", slug, TOKENS[slug], size=20)
+        for slug in ("allowed", "needs-approval", "not-permitted", "prohibited")
+    )
+
+
+def _render_data_risk(config: Config) -> None:
+    """Where the chosen class sits on the 7.1 scale, in the Matrix's colours.
+
+    The same computed scale the grid uses, and the same caveat: the colour is
+    how restricted the data is, not an answer about this agent.
     """
-    active = {a for _k, a, _l in enabled if a}
-    relevant = [e for e in EXCEPTIONS if e[0] in active]
-    heading = (
-        f"How {relevant[0][1].lower()} can run without a human each time"
-        if len(relevant) == 1
-        else "The two exceptions: payments and external messages"
+    slug = data_class_scale(VERSION)[config.data_class]
+    st.html(
+        f'<span class="cu-key cu-key--{slug}"><span class="cu-key__icon '
+        f'cu-icon cu-icon--{slug}"></span>{escape(config.data_class.value)}</span>'
+        '<span class="cu-meta"> how restricted this data is under 7.1, not the '
+        "answer for this agent</span>"
     )
-
-    with st.expander(heading, expanded=bool(relevant)):
-        st.html(
-            '<p class="cu-hint">Irreversible actions need a human for each action. '
-            "There are exactly two exceptions, and each needs the AI Governance "
-            "Committee to have accepted that risk for the use case.</p>"
-        )
-
-        for action, title, conditions in EXCEPTIONS:
-            on = action in active
-            inside = evaluate(_inputs_for(action, **_allowance(action, True)), VERSION)
-            outside = evaluate(_inputs_for(action, **_allowance(action, False)), VERSION)
-
-            conditions_html = "".join(f"<li>{escape(c)}</li>" for c in conditions)
-            state = "on" if on else "not switched on"
-            st.html(
-                f'<p class="cu-label">{escape(title)} &middot; {escape(state)}</p>'
-                f'<ul class="cu-list">{conditions_html}'
-                f"<li>The Committee has accepted that risk for the use case</li></ul>"
-                f'<p class="cu-route"><strong>All three met:</strong> '
-                f"{escape(_approval_phrase(inside))}. "
-                f"<strong>Any one missing:</strong> {escape(_approval_phrase(outside))}.</p>"
-            )
-
-        st.html(
-            '<p class="cu-hint">Adding a payee or a recipient to an allowlist is '
-            "never done by an agent. A human adds it, and it is logged.</p>"
-        )
-        render_clause_chips(["11.3", "C.2"])
-
-
-def _allowance(action: AgentAction, inside: bool) -> dict:
-    if action is AgentAction.PAY:
-        return {"payee_on_allowlist": inside, "within_caps": inside}
-    return {"recipient_on_allowlist": inside, "within_caps": inside}
-
-
-def _approval_phrase(verdict) -> str:
-    label = APPROVAL_LABELS.get(verdict.approval_kind, "")
-    return label or style_for(verdict.status).word.lower()
 
 
 def main() -> None:
     inject_styles()
     page_header(
         "What controls does this agent need?",
-        "Switch on what it may do, and the answer changes as you go.",
+        "Switch on what it may do, and its licence changes as you go.",
     )
-    if not st.session_state.get(OPENED_FLAG):
-        st.session_state[OPENED_FLAG] = True
-        _load_preset(next(keys for label, _d, keys in PRESETS if label == OPENING_PRESET))
+
+    if not st.session_state.get(OPENED):
+        st.session_state[OPENED] = True
+        _load_preset("Support agent")
+
+    view = st.radio(
+        "View",
+        options=("Plain", "Expert"),
+        horizontal=True,
+        key=VIEW,
+        label_visibility="collapsed",
+        help="Expert attaches the clause behind each control and each outcome.",
+    )
+    expert = view == "Expert"
 
     _render_presets()
-    _render_toggles()
-    enabled = _enabled()
-    _render_rollup(enabled)
-    _render_exceptions(enabled)
+    _render_job()
+    _render_scope()
+
+    config = _config()
+    st.html(
+        "<style>"
+        + _icon_styles()
+        # Like the Matrix, this page puts a ladder beside a licence and does
+        # not fit the reading measure. Widened only where there is room.
+        + "@media (min-width: 1000px){.block-container{max-width:1080px;}}"
+        + "</style>"
+    )
+    _render_data_risk(config)
+
+    left, right = st.columns([1, 1.15], gap="medium")
+    with left:
+        _render_ladder(config)
+    with right:
+        _render_licence(_config(), expert)
+        _render_impact(_config())
+
+    _render_controls(_config(), expert)
+    _render_stress(_config(), expert)
+
+    if expert:
+        every = sorted({clause for _c, clauses in controls(_config()) for clause in clauses})
+        render_clause_chips(every, label="Every clause behind this agent")
+        render_clause_drawer(every, VERSION)
+
     render_footer(VERSION)
 
 

@@ -1171,4 +1171,184 @@ div[data-testid="stExpander"] details {
   }
 
   .cu-grid-eg { display: none; }
+
+  /* The row label has 21% of a 375px screen, and "Confidential" broke across
+     two lines mid-word. The page already breaks long words to stop sideways
+     scroll; a row heading is short enough not to need it. */
+  .cu-grid-row {
+    font-size: 0.78rem;
+    overflow-wrap: normal;
+    word-break: normal;
+    hyphens: none;
+  }
+}
+
+/* --- Agents: the licence, the bars, the stress test ------------------- */
+
+.cu-licence-list,
+.cu-controls,
+.cu-bars {
+  list-style: none;
+  margin: 0.2rem 0 0.5rem;
+  padding: 0;
+}
+
+.cu-licence {
+  display: flex;
+  gap: 0.55rem;
+  padding: 0.45rem 0.55rem;
+  margin-bottom: 0.3rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.cu-licence--allowed { border-left: 5px solid var(--allowed); }
+.cu-licence--needs-approval { border-left: 5px solid var(--needs-approval); }
+.cu-licence--not-permitted { border-left: 5px solid var(--not-permitted); }
+.cu-licence--prohibited { border-left: 5px solid var(--prohibited); }
+
+.cu-licence__mark { flex: 0 0 auto; margin-top: 0.1rem; }
+.cu-licence__body { min-width: 0; }
+
+.cu-licence__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.cu-licence__state {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.cu-licence__note {
+  display: block;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--muted);
+  margin-top: 0.1rem;
+}
+
+/* A running count beside a label, so a growing list reads as growing. */
+.cu-count {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.02rem 0.4rem;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.cu-count--low { background: var(--allowed-tint); border-color: var(--allowed); }
+.cu-count--medium { background: var(--needs-approval-tint); border-color: var(--needs-approval); }
+.cu-count--high { background: var(--prohibited-tint); border-color: var(--prohibited); }
+
+/* A control the action you just allowed is responsible for. Worked out by
+   re-running the configuration without that action, so the credit is real. */
+.cu-control { margin-bottom: 0.3rem; }
+
+.cu-control--new {
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--needs-approval-tint);
+  list-style-position: inside;
+}
+
+.cu-control__why {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--not-permitted);
+  margin-top: 0.1rem;
+}
+
+/* --- Agents: the five B.3 factors as bars ----------------------------- */
+
+.cu-bar {
+  display: grid;
+  grid-template-columns: 8.5rem 4.5rem 1fr;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  font-size: 0.8rem;
+}
+
+.cu-bar--driver .cu-bar__name { font-weight: 700; color: var(--text); }
+
+.cu-bar__name { color: var(--muted); }
+
+.cu-bar__track { display: flex; gap: 0.15rem; }
+
+.cu-bar__step {
+  flex: 1 1 auto;
+  height: 0.55rem;
+  border-radius: 2px;
+  background: var(--border);
+}
+
+.cu-bar__step--on { background: var(--border-strong); }
+
+/* The step that set the level: the only one in the status colour, so the
+   eye lands on the factor the answer actually turned on. */
+.cu-bar__step--peak { background: var(--not-permitted); }
+
+.cu-bar__cell { color: var(--muted); font-size: 0.76rem; line-height: 1.3; }
+
+/* --- Agents: the stress test ------------------------------------------ */
+
+.cu-attack {
+  padding: 0.55rem 0.65rem;
+  margin-bottom: 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.cu-attack--allowed { border-left: 5px solid var(--allowed); }
+.cu-attack--prohibited { border-left: 5px solid var(--prohibited); background: var(--prohibited-tint); }
+
+.cu-attack__what { margin: 0 0 0.25rem; font-size: 0.88rem; font-weight: 600; }
+
+.cu-attack__verdict {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.cu-attack__verdict strong { color: var(--text); }
+
+/* The three keys sit under the rung they belong to. */
+[class*="st-key-cu_keys_"] {
+  margin: 0 0 0.5rem 1rem;
+  padding: 0.4rem 0.6rem;
+  border-left: 2px solid var(--border-strong);
+  background: var(--bg);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+@media (max-width: 640px) {
+  .cu-bar {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .cu-bar__track { max-width: 8rem; }
 }
