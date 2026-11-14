@@ -970,6 +970,101 @@ div[data-testid="stExpander"] details {
   .cu-status__icon { width: 1.7rem; height: 1.7rem; font-size: 1rem; }
 }
 
+/* --- Hero: kicker and question ----------------------------------------- */
+
+.cu-hero__kicker {
+  margin: 0 0 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.cu-hero__question {
+  margin: 0.1rem 0 0.2rem;
+  font-size: 1.45rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #fff;
+}
+
+/* --- The tier strip ------------------------------------------------------ */
+
+.cu-tiers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+  margin: 0.4rem 0 0.3rem;
+}
+
+.cu-tier {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(28, 36, 48, 0.05);
+}
+
+.cu-tier__kicker {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.cu-tier__name {
+  font-size: 1rem;
+  line-height: 1.25;
+  color: var(--text);
+}
+
+.cu-tier__gloss {
+  margin: 0 0 0.3rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.cu-tier__label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.cu-tier__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.15rem;
+}
+
+.cu-tier__chips .cu-key { font-size: 0.72rem; padding: 0.12rem 0.45rem; }
+
+/* The evidence tabs under the answer. */
+[data-testid="stTabs"] [data-baseweb="tab-list"] {
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+[data-testid="stTabs"] [data-baseweb="tab"] {
+  padding: 0.5rem 0.9rem;
+  font-weight: 600;
+}
+
+[data-testid="stTabs"] [data-baseweb="tab-highlight"] { background: var(--accent); }
+
+@media (max-width: 600px) {
+  .cu-tiers { grid-template-columns: 1fr; }
+  .cu-hero__question { font-size: 1.2rem; }
+}
+
 /* --- Template fields --------------------------------------------------- */
 
 /* This is a model policy, so fields like [Organization name] are meant to be

@@ -51,7 +51,21 @@ def render_verdict(
     panels underneath: what one change would do, and what nearly happened.
     Both re-run the engine rather than describing it, so neither can claim a
     rule the rulebook does not have.
+
+    The Check page places the three parts itself, with the answer on the page
+    and the reasoning and alternatives under tabs; this is the one-column
+    form of the same thing.
     """
+    render_answer(verdict)
+    render_reasoning(verdict, version, inputs)
+    if inputs is not None:
+        render_alternatives(inputs, version, changeable or [])
+    if share_url:
+        render_share_link(share_url)
+
+
+def render_answer(verdict: Verdict) -> None:
+    """The card, what is at stake, and what to do about it."""
     style = style_for(verdict.status)
 
     approval = ""
@@ -82,22 +96,24 @@ def render_verdict(
     if verdict.status is Status.NEEDS_APPROVAL and verdict.requirements:
         _render_list("What is required", verdict.requirements)
 
-    _render_supporting_reasons(verdict)
 
+def render_reasoning(verdict: Verdict, version: str, inputs: Inputs | None) -> None:
+    """Everything that fired, the clauses, the backing, and the gate trail."""
+    _render_supporting_reasons(verdict)
     render_citations(verdict.decisive_clauses, verdict.clauses, version)
     render_basis_row(verdict.basis)
-
     if inputs is not None:
         render_gate_trail(inputs, version)
-        # A hard line has no way round it, and a row of chips saying "it
-        # would be allowed if it were something else" next to "no route"
-        # would be the card arguing with itself.
-        if not is_hard_line(inputs, version):
-            render_what_if(inputs, version, changeable or [])
-        render_why_not_stricter(inputs, version)
 
-    if share_url:
-        render_share_link(share_url)
+
+def render_alternatives(inputs: Inputs, version: str, changeable: list[str]) -> None:
+    """What one change would do, and what nearly happened."""
+    # A hard line has no way round it, and a row of chips saying "it would be
+    # allowed if it were something else" next to "no route" would be the card
+    # arguing with itself.
+    if not is_hard_line(inputs, version):
+        render_what_if(inputs, version, changeable)
+    render_why_not_stricter(inputs, version)
 
 
 def render_share_link(url: str) -> None:

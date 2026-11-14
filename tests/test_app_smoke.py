@@ -106,9 +106,30 @@ def test_app_runs_without_exception():
     assert not at.exception
 
 
-def test_hero_question_is_the_heading():
+def test_the_policy_is_the_heading_and_the_question_sits_under_it():
     at = run_app()
-    assert "# Can I use AI for this?" in [m.value for m in at.markdown]
+    assert "# AI Acceptable Use Policy" in [m.value for m in at.markdown]
+    assert "Can I use AI for this?" in body(at)
+
+
+def test_the_evidence_sits_under_three_tabs():
+    at = run_app()
+    assert [tab.label for tab in at.tabs] == ["Why this answer", "What if", "Share"]
+
+
+def test_the_tiers_are_on_the_page_not_behind_a_click():
+    """The tier is the word the whole policy turns on, so the Check page
+    shows all three, with the engine's answer for each data class."""
+    at = run_app()
+    page = body(at)
+    for term, plain in (
+        ("Tier A", "Company-approved AI"),
+        ("Tier B", "Vetted, with gaps"),
+        ("Tier C", "Personal or free AI"),
+    ):
+        assert term in page and plain in page
+    assert "not assessed, including personal accounts" in page
+    assert page.count('class="cu-tier"') == 3
 
 
 def test_the_question_is_one_sentence_with_three_changeable_parts():

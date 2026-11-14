@@ -119,7 +119,7 @@ if st.session_state.get("_cu_build") != BUILD:
     st.session_state["_cu_build"] = BUILD
 
 st.set_page_config(
-    page_title="Can I use AI for this?",
+    page_title="AI Acceptable Use Policy · Can I use AI for this?",
     page_icon="⚖️",
     layout="centered",
     initial_sidebar_state="collapsed",

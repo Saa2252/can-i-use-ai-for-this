@@ -36,12 +36,14 @@ from app.components.legend import render_data_class_key
 from app.components.method import figures
 from app.components.risk import option_styles
 from app.components.shell import escape, inject_styles
-from app.components.tiers import render_tier_key
+from app.components.tiers import render_tier_strip
 from app.components.verdict_card import (
+    render_alternatives,
+    render_answer,
+    render_reasoning,
     render_safe_way,
     render_share_link,
     render_sticky_verdict,
-    render_verdict,
     render_waiting,
 )
 from app.styles.tokens import STATUS_STYLES
@@ -245,11 +247,16 @@ def _render_hero() -> None:
     """
     f = figures(VERSION)
     with st.container(key="cu_hero"):
-        st.markdown("# Can I use AI for this?")
         st.html(
-            '<p class="cu-hero__lede">An answer from the AI Acceptable Use Policy, '
-            "with the clauses it rests on. Write the sentence, read the verdict, "
-            "and check the rule yourself.</p>"
+            '<p class="cu-hero__kicker">AIG-POL-001 · version 1.6 · a model policy, '
+            "turned into a decision tool</p>"
+        )
+        st.markdown("# AI Acceptable Use Policy")
+        st.html(
+            '<p class="cu-hero__question">Can I use AI for this?</p>'
+            '<p class="cu-hero__lede">Write the sentence, read the verdict, and check '
+            "the clause it rests on. Every answer comes from the policy text and a set "
+            "of rules you can read.</p>"
             '<ul class="cu-hero__proof">'
             "<li>Every verdict cites its clause, word for word</li>"
             "<li>No AI model anywhere in the decision path</li>"
@@ -293,34 +300,57 @@ def main() -> None:
 
     render_question(VERSION)
 
-    # Reserved between the sentence and the further questions, and filled
-    # once they have been read: the answer sits directly under the line that
-    # produced it, and what refines it sits under the answer.
-    verdict_slot = st.container()
+    # The page under the sentence, in reading order: the answer, then three
+    # tabs for the evidence, then the terms. The answer's slot and the
+    # what-if slot are reserved first and filled once the further questions
+    # have been read, because those questions change the answer.
+    answer_slot = st.container()
+    why_tab, change_tab, share_tab = st.tabs(["Why this answer", "What if", "Share"])
 
-    inputs, included, changeable = render_detail()
+    with change_tab:
+        whatif_slot = st.container()
+        inputs, included, changeable = render_detail()
 
-    with verdict_slot:
+    with answer_slot:
         if inputs is None:
             render_waiting(missing_prompt(missing_required()))
         else:
             verdict = evaluate(inputs, VERSION)
             _render_guess_result(verdict.status)
-            render_verdict(
-                verdict,
-                version=VERSION,
-                inputs=inputs,
-                # Only what is on screen: offering to change a control the
-                # visitor cannot see is a dead end dressed as a suggestion.
-                changeable=changeable,
-            )
-            # The way out comes before the link: someone who has just been
-            # told no wants the route, not a URL for the refusal.
+            render_answer(verdict)
+            # The way out sits with the answer: someone who has just been
+            # told no wants the route before anything else.
             render_safe_way(inputs, VERSION, changeable, _apply_route)
-            render_share_link(share_url(included))
 
+    with why_tab:
+        if inputs is None:
+            st.html('<p class="cu-hint">Finish the sentence and the reasoning appears here.</p>')
+        else:
+            render_reasoning(verdict, VERSION, inputs)
+
+    with whatif_slot:
+        if inputs is not None:
+            st.html(
+                '<p class="cu-hint">The same question with one answer changed, run '
+                "through the rules again. Below it, the further questions this "
+                "combination turns on.</p>"
+            )
+            render_alternatives(inputs, VERSION, changeable)
+
+    with share_tab:
+        st.html(
+            '<p class="cu-hint">Your answers travel in the link and nowhere else. '
+            "Anyone who opens it sees this same verdict.</p>"
+        )
+        render_share_link(share_url(included))
+
+    st.markdown("## The three tool tiers")
+    st.html(
+        '<p class="cu-hint">The policy sorts every AI tool into one of three tiers, '
+        "and the tier decides what data may go in.</p>"
+    )
+    render_tier_strip(VERSION)
     render_data_class_key(VERSION)
-    render_tier_key(VERSION)
 
     write_query_params(included)
 
