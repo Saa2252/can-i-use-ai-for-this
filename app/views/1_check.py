@@ -33,8 +33,9 @@ from app.components.inputs import (
     write_query_params,
 )
 from app.components.legend import render_data_class_key
+from app.components.method import figures
 from app.components.risk import option_styles
-from app.components.shell import escape, inject_styles, page_header
+from app.components.shell import escape, inject_styles
 from app.components.tiers import render_tier_key
 from app.components.verdict_card import (
     render_safe_way,
@@ -55,13 +56,13 @@ VERSION = "v1_6"
 #: about a person, an agent, a prohibited practice, a confidentiality
 #: question, and a secret. The label is what fits on a card; the scenario's
 #: own sentence is the tooltip, so nothing here restates the scenario file.
-EXAMPLES: tuple[tuple[int, str], ...] = (
-    (2, "Client contract"),
-    (5, "CV screening"),
-    (8, "Agent emails"),
-    (13, "Emotion detection"),
-    (19, "Legal meeting"),
-    (12, "API key"),
+EXAMPLES: tuple[tuple[int, str, str], ...] = (
+    (2, "Client contract", ":material/description:"),
+    (5, "CV screening", ":material/person_search:"),
+    (8, "Agent emails", ":material/smart_toy:"),
+    (13, "Emotion detection", ":material/videocam:"),
+    (19, "Legal meeting", ":material/gavel:"),
+    (12, "API key", ":material/key:"),
 )
 
 #: What loads when the URL carries no answer of its own. Scenario 2 is the
@@ -151,7 +152,7 @@ def _active_example() -> int | None:
     """
     from app.components.inputs import FIELDS
 
-    for number, _label in EXAMPLES:
+    for number, _label, _icon in EXAMPLES:
         example = scenario(number).inputs
         # `apply_example` substitutes the field default wherever a scenario
         # leaves an optional input unset, so this comparison has to do the
@@ -175,10 +176,11 @@ def _render_examples(*, show_active: bool = True) -> None:
         "asks what you think before it answers.</p>"
     )
     with st.container(horizontal=True, gap="small", key="cu_examples"):
-        for number, label in EXAMPLES:
+        for number, label, icon in EXAMPLES:
             st.button(
                 f"{label} ✓" if number == active else label,
                 key=f"cu_example_{number}",
+                icon=icon,
                 on_click=_ask_for_a_guess,
                 args=(number,),
                 help=scenario(number).title,
@@ -233,12 +235,39 @@ def _render_guess_result(verdict_status: Status) -> None:
 # --------------------------------------------------------------------------
 
 
+def _render_hero() -> None:
+    """The band at the top: the question, what kind of answer this gives, and
+    three numbers that say the answer is checkable.
+
+    The heading stays a markdown h1, so it is the page's heading and not a
+    picture of one. The numbers are read from the files, as on the
+    How-it-works page, so the band cannot outlive the project it describes.
+    """
+    f = figures(VERSION)
+    with st.container(key="cu_hero"):
+        st.markdown("# Can I use AI for this?")
+        st.html(
+            '<p class="cu-hero__lede">An answer from the AI Acceptable Use Policy, '
+            "with the clauses it rests on. Write the sentence, read the verdict, "
+            "and check the rule yourself.</p>"
+            '<ul class="cu-hero__proof">'
+            "<li>Every verdict cites its clause, word for word</li>"
+            "<li>No AI model anywhere in the decision path</li>"
+            "<li>Rules you can read, as data</li>"
+            "</ul>"
+            '<div class="cu-hero__figures">'
+            f"<span><strong>{f.rules}</strong> rules</span>"
+            f"<span><strong>{f.clauses}</strong> clauses</span>"
+            f"<span><strong>{f.scenarios}</strong> worked scenarios</span>"
+            f"<span><strong>{f.sources}</strong> laws and standards</span>"
+            '<a class="cu-hero__link" href="how" target="_self">How it works</a>'
+            "</div>"
+        )
+
+
 def main() -> None:
     inject_styles()
-    page_header(
-        "Can I use AI for this?",
-        "An answer from the AI Acceptable Use Policy, with the clauses it rests on.",
-    )
+    _render_hero()
 
     _seed_once()
 

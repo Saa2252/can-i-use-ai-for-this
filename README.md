@@ -6,7 +6,7 @@ summarize client or HR information using a personal or free AI account* — and
 get an answer, with the clauses it rests on, what is at stake, what to do
 next, and the four gates the question passed through on the way.
 
-**Try it live:** <https://YOUR-APP.streamlit.app> <!-- TODO: replace with the deployed URL -->
+**Try it live:** <https://can-i-use-ai-for-this-1.streamlit.app>
 · **How it works:** `/how` in the app shows the method, the numbers, the
 law crosswalk and what the rules do and do not reach, all read from the
 same files the engine runs on.

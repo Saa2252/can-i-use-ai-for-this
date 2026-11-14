@@ -38,7 +38,10 @@ body,
 /* The header is 60px and absolutely positioned over the content, so the top
    padding has to clear it or the page title renders underneath the nav. */
 .block-container {
-  max-width: var(--measure);
+  /* The column's width, for anything that bleeds past it and has to find
+     its way back to the text edge (the Check page's hero). */
+  --col: var(--measure);
+  max-width: var(--col);
   padding: 4rem var(--gutter) 4rem;
   margin: 0 auto;
 }
@@ -790,6 +793,181 @@ div[data-testid="stExpander"] details {
 @media (max-width: 600px) {
   .cu-flow__row { grid-template-columns: 1fr; }
   .cu-figures { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* --- The Check page's hero band ----------------------------------------- */
+
+/* The landing page used to open on a plain heading in a narrow column of
+   off-white, which read as a form. The band says what kind of thing this is
+   before the first tap: the question, the promise, and three numbers that
+   make the promise checkable. It bleeds to the viewport edges while its
+   text stays on the column, so the page keeps one reading width. */
+.st-key-cu_hero {
+  width: 100vw;
+  max-width: 100vw;
+  margin: -0.25rem 0 0.9rem calc(50% - 50vw);
+  padding: 2.2rem calc(max(0px, (100vw - var(--col)) / 2) + var(--gutter)) 1.7rem;
+  background:
+    radial-gradient(60rem 18rem at 85% -20%, rgba(255, 255, 255, 0.14), transparent 60%),
+    linear-gradient(120deg, #0A454C 0%, var(--accent) 55%, #15757F 100%);
+  color: #fff;
+  gap: 0.4rem;
+}
+
+.st-key-cu_hero [data-testid="stMarkdownContainer"] h1 {
+  font-size: 2.35rem !important;
+  line-height: 1.1 !important;
+  color: #fff !important;
+  letter-spacing: -0.02em;
+}
+
+.st-key-cu_hero [data-testid="stMarkdownContainer"] h1 a { color: inherit; }
+
+.cu-hero__lede {
+  max-width: 36rem;
+  margin: 0.2rem 0 0.4rem;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.cu-hero__proof {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 0.9rem;
+  padding: 0;
+  list-style: none;
+}
+
+.cu-hero__proof li {
+  padding: 0.3rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.cu-hero__figures {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3rem 1.4rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.cu-hero__figures strong {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #fff;
+  margin-right: 0.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.cu-hero__link {
+  margin-left: auto;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--accent) !important;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none !important;
+  white-space: nowrap;
+}
+
+.cu-hero__link:hover { background: var(--allowed-tint); }
+
+/* Section labels pick up the accent, so the page's structure reads at a
+   glance instead of as a column of grey. */
+.cu-label { color: var(--accent); }
+
+/* The six example cards. They were outlined chips that looked like filter
+   buttons; now they are cards, with an icon each and a lift on hover. */
+.st-key-cu_examples { row-gap: 0.5rem; }
+
+.st-key-cu_examples .stButton button {
+  min-height: 2.9rem;
+  padding: 0.55rem 0.95rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(28, 36, 48, 0.06);
+  font-weight: 600;
+  color: var(--text);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+.st-key-cu_examples .stButton button [data-testid="stIconMaterial"] {
+  color: var(--accent);
+}
+
+.st-key-cu_examples .stButton button:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent);
+  box-shadow: 0 4px 12px rgba(15, 94, 102, 0.16);
+  color: var(--text);
+}
+
+/* The sentence is the centrepiece and reads at a size that says so. */
+.st-key-cu_sentence {
+  padding: 1rem 1.15rem;
+  box-shadow: 0 2px 10px rgba(28, 36, 48, 0.05);
+}
+
+.cu-say { font-size: 1.2rem; }
+
+.st-key-cu_slot_activity .stButton button,
+.st-key-cu_slot_data_class .stButton button,
+.st-key-cu_slot_tool .stButton button {
+  font-size: 1.2rem;
+  border-bottom-color: var(--accent);
+  color: var(--accent);
+}
+
+.st-key-cu_slot_activity .stButton button:hover,
+.st-key-cu_slot_data_class .stButton button:hover,
+.st-key-cu_slot_tool .stButton button:hover {
+  border-bottom-color: var(--accent);
+  background: rgba(15, 94, 102, 0.06);
+  color: var(--accent);
+}
+
+/* The verdict is the answer and gets the weight of one. */
+.cu-card {
+  padding: 1.2rem 1.35rem;
+  box-shadow: 0 6px 18px rgba(28, 36, 48, 0.07);
+}
+
+.cu-status { font-size: 1.6rem; }
+
+.cu-status__icon {
+  width: 2rem;
+  height: 2rem;
+  font-size: 1.15rem;
+}
+
+.cu-card .cu-reason { font-size: 1.08rem; }
+
+/* Reading width. The column was 720px on every screen, which on a desktop
+   leaves two thirds of the window empty; it grows a little where the room is
+   there, and the hero's text grows with it. */
+@media (min-width: 1100px) {
+  .block-container { --col: 880px; }
+}
+
+@media (max-width: 480px) {
+  .st-key-cu_hero { padding-top: 1.4rem; padding-bottom: 1.2rem; }
+  .st-key-cu_hero [data-testid="stMarkdownContainer"] h1 { font-size: 1.75rem !important; }
+  .cu-hero__lede { font-size: 0.95rem; }
+  .cu-hero__figures { gap: 0.2rem 1rem; }
+  .cu-hero__figures strong { font-size: 1.15rem; }
+  .cu-hero__link { margin-left: 0; margin-top: 0.4rem; }
+  .cu-status { font-size: 1.3rem; }
+  .cu-status__icon { width: 1.7rem; height: 1.7rem; font-size: 1rem; }
 }
 
 /* --- Template fields --------------------------------------------------- */
