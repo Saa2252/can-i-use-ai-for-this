@@ -583,6 +583,215 @@ div[data-testid="stExpander"] details {
   .block-container { padding-left: var(--gutter); padding-right: var(--gutter); }
 }
 
+/* --- How it works ------------------------------------------------------ */
+
+/* The pipeline. Three sources, one engine, one verdict, five pages: boxes
+   and a drawn arrow, no SVG, because st.html would strip one. */
+.cu-flow { margin: 0.6rem 0 1rem; }
+
+.cu-flow__row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.cu-flow__box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.cu-flow__box strong { font-size: 0.95rem; }
+
+.cu-flow__box--engine { border: 2px solid var(--accent); }
+
+.cu-flow__box--verdict { border-style: dashed; }
+
+.cu-flow__kicker {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  color: var(--accent);
+}
+
+.cu-flow__arrow {
+  position: relative;
+  width: 0;
+  height: 1.4rem;
+  margin: 0 auto;
+  border-left: 2px solid var(--border-strong);
+}
+
+.cu-flow__arrow::after {
+  content: "";
+  position: absolute;
+  left: -5px;
+  bottom: -1px;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 6px solid var(--border-strong);
+}
+
+.cu-flow__pages { justify-content: center; margin-bottom: 0.3rem; }
+
+.cu-flow__caption { text-align: center; }
+
+.cu-flow__severity { align-items: center; }
+
+.cu-flow__beats {
+  font-size: 0.72rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* The credibility numbers. Plain tiles: the number is the signal, so no
+   colour and no icon competes with it. */
+.cu-figures {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin: 0.4rem 0 0.4rem;
+}
+
+.cu-figure {
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.cu-figure__n {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.cu-figure__l {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.78rem;
+  line-height: 1.3;
+  color: var(--muted);
+}
+
+/* The crosswalk and the coverage table. One table style for both, so they
+   read as the same kind of evidence. */
+.cu-xwalk-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cu-xwalk {
+  width: 100%;
+  margin: 0.4rem 0 0.2rem;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.cu-xwalk th,
+.cu-xwalk td {
+  padding: 0.35rem 0.45rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.cu-xwalk th {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.cu-xwalk__first td { border-top: 1px solid var(--border-strong); }
+
+.cu-xwalk__id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.cu-xwalk__where {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.cu-xwalk__type,
+.cu-xwalk__date { white-space: nowrap; }
+
+.cu-cover__n {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.cu-cover__bar {
+  min-width: 6rem;
+  height: 0.45rem;
+  margin-top: 0.3rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.cu-cover__fill {
+  height: 100%;
+  background: var(--accent);
+}
+
+/* The adoption steps. */
+.cu-steps {
+  counter-reset: step;
+  list-style: none;
+  margin: 0.4rem 0;
+  padding: 0;
+}
+
+.cu-steps li {
+  position: relative;
+  margin: 0.5rem 0;
+  padding-left: 2rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.cu-steps li::before {
+  counter-increment: step;
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+@media (max-width: 600px) {
+  .cu-flow__row { grid-template-columns: 1fr; }
+  .cu-figures { grid-template-columns: repeat(2, 1fr); }
+}
+
 /* --- Template fields --------------------------------------------------- */
 
 /* This is a model policy, so fields like [Organization name] are meant to be

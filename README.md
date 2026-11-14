@@ -6,6 +6,11 @@ summarize client or HR information using a personal or free AI account* — and
 get an answer, with the clauses it rests on, what is at stake, what to do
 next, and the four gates the question passed through on the way.
 
+**Try it live:** <https://YOUR-APP.streamlit.app> <!-- TODO: replace with the deployed URL -->
+· **How it works:** `/how` in the app shows the method, the numbers, the
+law crosswalk and what the rules do and do not reach, all read from the
+same files the engine runs on.
+
 ![The Check page: the sentence, and the verdict with its clauses](docs/screenshots/check-1280-sentence.jpg)
 
 ![The gate trail: Section 6, 7, 8 and 9, and where the question stopped](docs/screenshots/check-1280-trail.jpg)
@@ -27,10 +32,10 @@ Four verdicts, and the difference between the middle two is the point:
 | **Not permitted** | Blocked as described — but a compliant route exists, and the card shows it. |
 | **Prohibited** | A hard line in Section 6. No approval route, and no exceptions. |
 
-Seven pages: **Check** (the hero), **Matrix** (the data × tier grid),
-**Agents** (a permission builder), **Quiz**, **Changes** (two comparisons),
-the full **Policy** with search, and **Limits** — what the policy and the tool
-do not cover.
+Eight pages: **Check** (the hero), **How it works** (the method, for a
+governance reader), **Matrix** (the data × tier grid), **Agents** (a permission
+builder), **Quiz**, **Changes** (two comparisons), the full **Policy** with
+search, and **Limits** — what the policy and the tool do not cover.
 
 ## Rules as data, not code
 

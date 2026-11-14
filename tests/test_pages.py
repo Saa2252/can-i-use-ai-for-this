@@ -25,6 +25,7 @@ QUIZ_SHARE_PARAM = "score"
 
 PAGES = {
     "check": "views/1_check.py",
+    "how": "views/0_how.py",
     "limits": "views/7_limits.py",
     "matrix": "views/2_matrix.py",
     "agents": "views/3_agent_builder.py",

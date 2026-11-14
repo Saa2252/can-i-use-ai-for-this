@@ -130,6 +130,10 @@ PAGES = [
     # Streamlit ignores a url_path here, so setting one only suggests a
     # /check URL that 404s. Shareable verdict links are /?data_class=...
     st.Page("views/1_check.py", title="Check", icon=":material/rule:", default=True),
+    # Second, not last: a governance reader wants to know what kind of thing
+    # this is before they trust an answer from it. The file is numbered 0
+    # because it is the one to read first; the Check page keeps the root URL.
+    st.Page("views/0_how.py", title="How it works", icon=":material/account_tree:", url_path="how"),
     st.Page("views/2_matrix.py", title="Matrix", icon=":material/grid_on:", url_path="matrix"),
     st.Page(
         "views/3_agent_builder.py",
