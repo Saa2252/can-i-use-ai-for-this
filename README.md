@@ -13,7 +13,9 @@ same files the engine runs on.
 
 ![The Check page: the sentence, and the verdict with its clauses](docs/screenshots/check-1280-sentence.jpg)
 
-![The gate trail: Section 6, 7, 8 and 9, and where the question stopped](docs/screenshots/check-1280-trail.jpg)
+![The answer, and the evidence tabs down to the gate trail](docs/screenshots/check-1280-trail.jpg)
+
+![The three tool tiers, with what may go in computed by the engine](docs/screenshots/check-1280-tiers.jpg)
 
 ---
 
@@ -36,6 +38,8 @@ Eight pages: **Check** (the hero), **How it works** (the method, for a
 governance reader), **Matrix** (the data × tier grid), **Agents** (a permission
 builder), **Quiz**, **Changes** (two comparisons), the full **Policy** with
 search, and **Limits** — what the policy and the tool do not cover.
+
+![How it works: three files in, one engine, one verdict, five pages](docs/screenshots/how-1280-picture.jpg)
 
 ## Rules as data, not code
 

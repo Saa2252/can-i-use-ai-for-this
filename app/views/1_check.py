@@ -255,13 +255,8 @@ def _render_hero() -> None:
         st.html(
             '<p class="cu-hero__question">Can I use AI for this?</p>'
             '<p class="cu-hero__lede">Write the sentence, read the verdict, and check '
-            "the clause it rests on. Every answer comes from the policy text and a set "
-            "of rules you can read.</p>"
-            '<ul class="cu-hero__proof">'
-            "<li>Every verdict cites its clause, word for word</li>"
-            "<li>No AI model anywhere in the decision path</li>"
-            "<li>Rules you can read, as data</li>"
-            "</ul>"
+            "the clause it rests on. No AI model decides anything here: every answer "
+            "comes from the policy text and rules you can read.</p>"
             '<div class="cu-hero__figures">'
             f"<span><strong>{f.rules}</strong> rules</span>"
             f"<span><strong>{f.clauses}</strong> clauses</span>"

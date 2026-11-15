@@ -806,7 +806,7 @@ div[data-testid="stExpander"] details {
   width: 100vw;
   max-width: 100vw;
   margin: -0.25rem 0 0.9rem calc(50% - 50vw);
-  padding: 2.2rem calc(max(0px, (100vw - var(--col)) / 2) + var(--gutter)) 1.7rem;
+  padding: 2rem calc(max(0px, (100vw - var(--col)) / 2) + var(--gutter)) 1.6rem;
   background:
     radial-gradient(60rem 18rem at 85% -20%, rgba(255, 255, 255, 0.14), transparent 60%),
     linear-gradient(120deg, #0A454C 0%, var(--accent) 55%, #15757F 100%);
@@ -824,30 +824,11 @@ div[data-testid="stExpander"] details {
 .st-key-cu_hero [data-testid="stMarkdownContainer"] h1 a { color: inherit; }
 
 .cu-hero__lede {
-  max-width: 36rem;
-  margin: 0.2rem 0 0.4rem;
+  max-width: 38rem;
+  margin: 0.3rem 0 1rem;
   font-size: 1.05rem;
   line-height: 1.5;
   color: rgba(255, 255, 255, 0.86);
-}
-
-.cu-hero__proof {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin: 0 0 0.9rem;
-  padding: 0;
-  list-style: none;
-}
-
-.cu-hero__proof li {
-  padding: 0.3rem 0.7rem;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 999px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #fff;
-  background: rgba(255, 255, 255, 0.08);
 }
 
 .cu-hero__figures {

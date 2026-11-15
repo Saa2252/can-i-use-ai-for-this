@@ -1,0 +1,30 @@
+# Streamlit Community Cloud sleeps an app nobody has opened for a while. This
+# opens it in a real browser every six hours, which counts as a viewer, and
+# presses the wake button if the app has already gone to sleep.
+#
+# GitHub pauses scheduled workflows in a repository with no commits for 60
+# days; a push, or the "Run workflow" button on the Actions tab, resumes it.
+name: Keep the live app awake
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  visit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install a browser
+        run: |
+          pip install playwright==1.47.0
+          python -m playwright install --with-deps chromium
+      - name: Open the app
+        run: python scripts/keep_awake.py https://can-i-use-ai-for-this-1.streamlit.app/

@@ -37,33 +37,6 @@ def render_waiting(prompt: str) -> None:
     )
 
 
-def render_verdict(
-    verdict: Verdict,
-    *,
-    version: str = "v1_5",
-    share_url: str | None = None,
-    inputs: Inputs | None = None,
-    changeable: list[str] | None = None,
-) -> None:
-    """Render one verdict, top to bottom.
-
-    Pass `inputs` and the fields currently on screen to get the two computed
-    panels underneath: what one change would do, and what nearly happened.
-    Both re-run the engine rather than describing it, so neither can claim a
-    rule the rulebook does not have.
-
-    The Check page places the three parts itself, with the answer on the page
-    and the reasoning and alternatives under tabs; this is the one-column
-    form of the same thing.
-    """
-    render_answer(verdict)
-    render_reasoning(verdict, version, inputs)
-    if inputs is not None:
-        render_alternatives(inputs, version, changeable or [])
-    if share_url:
-        render_share_link(share_url)
-
-
 def render_answer(verdict: Verdict) -> None:
     """The card, what is at stake, and what to do about it."""
     style = style_for(verdict.status)
