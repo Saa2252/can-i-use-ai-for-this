@@ -33,7 +33,6 @@ from app.components.inputs import (
     write_query_params,
 )
 from app.components.legend import render_data_class_key
-from app.components.method import figures
 from app.components.risk import option_styles
 from app.components.shell import escape, inject_styles
 from app.components.tiers import render_tier_strip
@@ -238,32 +237,20 @@ def _render_guess_result(verdict_status: Status) -> None:
 
 
 def _render_hero() -> None:
-    """The band at the top: the question, what kind of answer this gives, and
-    three numbers that say the answer is checkable.
+    """The band at the top: the policy, the question, and what kind of answer
+    this gives. One sentence and one link; the numbers live on How it works.
 
     The heading stays a markdown h1, so it is the page's heading and not a
-    picture of one. The numbers are read from the files, as on the
-    How-it-works page, so the band cannot outlive the project it describes.
+    picture of one.
     """
-    f = figures(VERSION)
     with st.container(key="cu_hero"):
-        st.html(
-            '<p class="cu-hero__kicker">AIG-POL-001 · version 1.6 · a model policy, '
-            "turned into a decision tool</p>"
-        )
         st.markdown("# AI Acceptable Use Policy")
         st.html(
             '<p class="cu-hero__question">Can I use AI for this?</p>'
-            '<p class="cu-hero__lede">Write the sentence, read the verdict, and check '
-            "the clause it rests on. No AI model decides anything here: every answer "
-            "comes from the policy text and rules you can read.</p>"
-            '<div class="cu-hero__figures">'
-            f"<span><strong>{f.rules}</strong> rules</span>"
-            f"<span><strong>{f.clauses}</strong> clauses</span>"
-            f"<span><strong>{f.scenarios}</strong> worked scenarios</span>"
-            f"<span><strong>{f.sources}</strong> laws and standards</span>"
-            '<a class="cu-hero__link" href="how" target="_self">How it works</a>'
-            "</div>"
+            '<p class="cu-hero__lede">Write the sentence and read the verdict, with the '
+            "clause it rests on. No AI model decides anything here.</p>"
+            '<p class="cu-hero__more"><a class="cu-hero__link" href="how" target="_self">'
+            "How it works</a></p>"
         )
 
 

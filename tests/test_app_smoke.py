@@ -112,6 +112,17 @@ def test_the_policy_is_the_heading_and_the_question_sits_under_it():
     assert "Can I use AI for this?" in body(at)
 
 
+def test_the_hero_is_one_sentence_and_one_link():
+    """The band had a document number, a strapline and a row of figures;
+    the reader asked for it quiet. The numbers belong to How it works."""
+    at = run_app()
+    hero = next(h.value for h in at.html if "cu-hero__lede" in h.value)
+    assert 'href="how"' in hero
+    assert "AIG-POL-001" not in hero and "version 1.6" not in hero
+    assert "cu-hero__figures" not in hero and "<strong>" not in hero
+    assert hero.count("<p") == 3
+
+
 def test_the_evidence_sits_under_three_tabs():
     at = run_app()
     assert [tab.label for tab in at.tabs] == ["Why this answer", "What if", "Share"]
