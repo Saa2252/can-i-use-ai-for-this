@@ -91,6 +91,14 @@ h3 {
   padding: 0.4rem 0 0.1rem !important;
 }
 
+/* Streamlit gives the container of a heading `margin-bottom: -1rem`, which
+   cancels the 1rem of bottom padding its own headings carry. Ours carry far
+   less, so without this the next element is pulled up into the heading and
+   the answer buttons on the Quiz page sat on top of the question. */
+[data-testid="stMarkdownContainer"]:has(> [data-testid="stHeadingWithActionElements"]) {
+  margin-bottom: 0 !important;
+}
+
 .cu-lede {
   color: var(--muted);
   font-size: 0.92rem;

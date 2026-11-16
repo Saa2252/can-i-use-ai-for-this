@@ -161,6 +161,11 @@ def _render_question(position: int, example: Scenario, last: bool) -> None:
     else:
         _render_reveal(example, picked)
 
+    # On the first question, before an answer, there is no button to show,
+    # and an empty row still takes its height from the gap around it.
+    if position == 1 and picked is None:
+        return
+
     with st.container(horizontal=True, gap="small"):
         if position > 1:
             st.button("Back", key="cu_quiz_back", on_click=_back, width="content")
