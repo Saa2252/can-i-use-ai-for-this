@@ -15,6 +15,7 @@ import streamlit as st
 
 from app.components.clause_drawer import render_clause
 from app.components.grid import ROW_LABELS, TOOL_COLUMNS, cell_status
+from app.components.legend import DATA_CLASS_CLAUSES
 from app.components.shell import escape
 from app.styles.tokens import STATUS_STYLES
 from engine.models import DataClass
@@ -158,10 +159,10 @@ def render_tier_strip(version: str = "v1_6") -> None:
         f'<div class="cu-tiers">{"".join(cards)}</div>'
         '<p class="cu-meta">A tool\'s tier is assigned by IT and Security, not by the '
         "person using it. Each chip is the engine's answer for plain drafting of that "
-        "data in that tool, which is the 7.1 grid read through the same rules.</p>"
+        "data in that tool.</p>"
     )
     conditions = tier_a_conditions(version)
-    with st.expander("The Tier A conditions, and B.1.1 to B.1.3 in full"):
+    with st.expander("The tiers and the five data classes, in full"):
         if conditions:
             st.html(
                 '<p class="cu-hint">B.1.2 grants Tier A only with all of:</p>'
@@ -170,4 +171,12 @@ def render_tier_strip(version: str = "v1_6") -> None:
                 + "</ul>"
             )
         for clause in resolve_clauses(TIER_CLAUSES, version):
+            render_clause(clause)
+        st.html(
+            '<p class="cu-hint">The five data classes: 7.4 defines Restricted. Public, '
+            "Internal and Confidential are set by the organization's own Data "
+            "Classification Standard, which this policy points to rather than "
+            "restates, so an adopter maps them to their own scheme.</p>"
+        )
+        for clause in resolve_clauses(DATA_CLASS_CLAUSES, version):
             render_clause(clause)

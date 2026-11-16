@@ -15,6 +15,7 @@ import streamlit as st
 from app.components.clause_drawer import render_clause_drawer
 from app.components.footer import render_footer
 from app.components.shell import escape, inject_styles, page_header
+from app.components.trail import render_next
 from engine.rules import load_basis
 
 VERSION = "v1_6"
@@ -221,6 +222,7 @@ def main() -> None:
     _render_open()
     _render_structural()
     _render_checked()
+    render_next("limits")
     render_footer(VERSION)
 
 

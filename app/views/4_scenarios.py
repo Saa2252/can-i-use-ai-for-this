@@ -26,6 +26,7 @@ from app.components.footer import render_footer
 from app.components.legend import render_verdict_key
 from app.components.scenario_text import describe_scenario
 from app.components.shell import escape, inject_styles, page_header
+from app.components.trail import render_next
 from app.styles.tokens import STATUS_STYLES, style_for
 from engine.models import Status
 from engine.rules import evaluate
@@ -248,6 +249,7 @@ def main() -> None:
             last=position == len(order) - 1,
         )
 
+    render_next("quiz")
     render_footer(VERSION)
 
 

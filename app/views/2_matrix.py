@@ -42,6 +42,7 @@ from app.components.icons import rule as icon_rule
 from app.components.legend import render_data_class_key
 from app.components.shell import escape, inject_styles, page_header
 from app.components.tiers import render_tier_key
+from app.components.trail import render_next
 from app.styles.tokens import TOKENS, style_for
 from engine.models import DataClass, Status, Tool
 from engine.rules import evaluate
@@ -511,6 +512,7 @@ def main() -> None:
         )
         _render_game()
 
+    render_next("matrix")
     render_footer(VERSION)
 
 

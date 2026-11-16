@@ -221,8 +221,9 @@ def test_review_page_runs():
 
 
 def test_review_page_lists_the_changed_scenarios():
-    page = body(open_review())
-    assert "Scenarios whose verdict changed" in page
+    at = open_review()
+    page = body(at)
+    assert [tab.label for tab in at.tabs][0] == "What flipped"
     assert "4 of 21 scenarios" in page
     for title in (
         "Agent emails an address not on the list",
@@ -243,8 +244,9 @@ def test_review_page_shows_both_versions_for_a_scenario():
 
 
 def test_review_page_renders_the_changelog_cards():
-    page = body(open_review())
-    assert "How the policy changed" in page
+    at = open_review()
+    page = body(at)
+    assert "The change log" in {tab.label for tab in at.tabs}
     assert "second narrow exception" in page
     assert "The R1 to R9 labels are removed" in page
 
@@ -252,7 +254,7 @@ def test_review_page_renders_the_changelog_cards():
 def test_review_page_covers_the_four_disputed_points():
     """Titles are expander labels, which AppTest exposes separately from text."""
     at = open_review()
-    assert "Where it could have gone the other way" in body(at)
+    assert "Where it was argued" in {tab.label for tab in at.tabs}
     labels = {expander.label for expander in at.expander}
     for title in (
         "Fatigue detection",

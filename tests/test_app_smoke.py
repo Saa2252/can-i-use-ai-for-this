@@ -667,7 +667,7 @@ def test_the_trail_shows_four_gates_and_names_the_one_that_stopped_it() -> None:
 
 def test_a_blocked_answer_offers_the_smallest_change_that_fixes_it() -> None:
     at = run_app(**params_for(scenario(2).inputs))
-    assert "Show me the safe way" in body(at)
+    assert [b for b in at.button if b.key == "cu_safe_way"]
 
     at = at.button(key="cu_safe_way").click().run()
     assert not at.exception
@@ -688,7 +688,7 @@ def test_a_hard_line_is_told_plainly_and_offered_nothing() -> None:
 def test_an_allowed_answer_is_offered_no_route_at_all() -> None:
     at = run_app(data_class="Public", tool="A", activity="drafting")
     assert STATUS_STYLES[Status.ALLOWED].word in body(at)
-    assert "Show me the safe way" not in body(at)
+    assert not [b for b in at.button if b.key == "cu_safe_way"]
 
 
 def test_tapping_an_example_asks_before_it_tells() -> None:

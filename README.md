@@ -37,7 +37,10 @@ Four verdicts, and the difference between the middle two is the point:
 Eight pages: **Check** (the hero), **How it works** (the method, for a
 governance reader), **Matrix** (the data × tier grid), **Agents** (a permission
 builder), **Quiz**, **Changes** (two comparisons), the full **Policy** with
-search, and **Limits** — what the policy and the tool do not cover.
+search, and **Limits** — what the policy and the tool do not cover. Each page
+opens on its main thing and keeps the rest under tabs, and each ends with a
+card naming the page to read next, so a visitor can walk the whole app without
+opening the navigation.
 
 ![How it works: three files in, one engine, one verdict, five pages](docs/screenshots/how-1280-picture.jpg)
 

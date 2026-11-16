@@ -11,6 +11,7 @@ import streamlit as st
 from app.components.basis_badges import render_policy_backing
 from app.components.footer import render_footer
 from app.components.shell import escape, inject_styles, mark_template_fields, page_header
+from app.components.trail import render_next
 from app.styles.tokens import BASIS_ICONS, BASIS_LABELS
 from engine.models import Clause
 from engine.policy_parser import load_policy
@@ -52,7 +53,6 @@ def _render_staff_summary() -> None:
     if summary.is_empty:
         return
 
-    st.markdown("## AI at work, on one page")
     for heading, items, tone in (
         ("Always", summary.always, "allowed"),
         ("Ask first", summary.ask_first, "needs-approval"),
@@ -70,7 +70,6 @@ def _render_staff_summary() -> None:
 
 
 def _render_lens() -> str:
-    st.markdown("## The full policy")
     lens = st.segmented_control(
         "Jurisdiction lens",
         options=JURISDICTION_LENSES,
@@ -153,19 +152,24 @@ def main() -> None:
         "AIG-POL-001 v1.6, in full. Search it, or see which laws apply where.",
     )
 
-    _render_front_matter()
-    _render_staff_summary()
-    lens = _render_lens()
-    _render_lens_summary(lens)
+    # The one-page summary is what most readers came for. The 165 clauses
+    # sit on the second tab, with the search and the lens that work on them.
+    summary_tab, full_tab = st.tabs(["On one page", "The full policy"])
+    with summary_tab:
+        _render_staff_summary()
+    with full_tab:
+        _render_front_matter()
+        lens = _render_lens()
+        _render_lens_summary(lens)
+        query = st.text_input(
+            "Search the policy",
+            key=SEARCH_KEY,
+            placeholder="A clause number, or any words in it",
+        )
+        _render_clauses(lens, query or "")
+        render_policy_backing()
 
-    query = st.text_input(
-        "Search the policy",
-        key=SEARCH_KEY,
-        placeholder="A clause number, or any words in it",
-    )
-    _render_clauses(lens, query or "")
-
-    render_policy_backing()
+    render_next("policy")
     render_footer(VERSION)
 
 

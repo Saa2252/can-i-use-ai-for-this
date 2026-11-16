@@ -55,10 +55,9 @@ def render_answer(verdict: Verdict) -> None:
         f'<p class="cu-subtitle">{escape(style.subtitle)}</p>'
         f"{approval}"
         f'<p class="cu-reason">{escape(headline)}</p>'
+        f"{_stakes_html(verdict)}"
         f"</div>"
     )
-
-    _render_stakes(verdict)
 
     if verdict.status is Status.NOT_PERMITTED and verdict.try_instead:
         st.html(
@@ -247,12 +246,13 @@ def render_why_not_stricter(inputs: Inputs, version: str) -> None:
 # --------------------------------------------------------------------------
 
 
-def _render_stakes(verdict: Verdict) -> None:
-    """What is at stake, and what to do about it.
+def _stakes_html(verdict: Verdict) -> str:
+    """What is at stake, and what to do about it, for the inside of the card.
 
     Both come from the rule that gave the reason line, so a card never
     explains one rule's answer with another rule's consequences. A ruleset
-    that carries neither simply shows neither.
+    that carries neither simply shows neither. They sit inside the card
+    rather than under it, so the answer is one block and not four.
     """
     blocks = []
     if verdict.why_it_matters:
@@ -265,8 +265,7 @@ def _render_stakes(verdict: Verdict) -> None:
             '<p class="cu-label">Do this next</p>'
             f'<p class="cu-next">{escape(verdict.next_step)}</p>'
         )
-    if blocks:
-        st.html("".join(blocks))
+    return "".join(blocks)
 
 
 # --------------------------------------------------------------------------
@@ -400,19 +399,17 @@ def render_safe_way(
 
     style = style_for(route.status)
     sentence = route_sentence(route)
-    st.html(
-        '<p class="cu-label">Show me the safe way</p>'
-        f'<p class="cu-hint">The smallest change that reaches '
-        f"<strong>{escape(style.word.lower())}</strong>, found by running the same "
-        f"rules over every one- and two-answer change.</p>"
-    )
+    st.html('<p class="cu-label">The safe way</p>')
     st.button(
         f"{sentence.rstrip('.')}  {style.icon} {style.word}",
         key="cu_safe_way",
         on_click=on_apply,
         args=(route,),
         type="primary",
-        help="Applies this change and answers again.",
+        help=(
+            f"The smallest change that reaches {style.word.lower()}, found by running "
+            "the same rules over every one- and two-answer change. Tap to apply it."
+        ),
     )
 
 

@@ -13,6 +13,7 @@ from app.components.clause_drawer import render_clause_drawer
 from app.components.footer import render_footer
 from app.components.scenario_text import describe_scenario
 from app.components.shell import escape, inject_styles, page_header
+from app.components.trail import render_next
 from app.components.verdict_card import render_compact_verdict
 from app.styles.tokens import style_for
 from engine.models import Status
@@ -151,7 +152,6 @@ def _render_changed_list(before: str, after: str) -> None:
     total = len(everything)
     before_label, after_label = _version_label(before), _version_label(after)
 
-    st.markdown("## Scenarios whose verdict changed")
     st.html(
         f'<p class="cu-hint">{len(changes)} of {total} scenarios get a different '
         f"answer under {after_label} than they did under {before_label}. "
@@ -246,7 +246,6 @@ def _label(verdict) -> str:
 
 def _render_scenario_toggle(before: str, after: str) -> None:
     before_label, after_label = _version_label(before), _version_label(after)
-    st.markdown("## Run a scenario through both versions")
     scenarios = load_scenarios()
     labels = {scenario.n: f"{scenario.n}. {scenario.title}" for scenario in scenarios}
 
@@ -285,7 +284,6 @@ def _render_scenario_toggle(before: str, after: str) -> None:
 
 
 def _render_changelogs() -> None:
-    st.markdown("## How the policy changed")
     st.html('<p class="cu-hint">Straight from the change log tables in the policy itself.</p>')
     changelogs = load_policy(CURRENT).changelogs
     for version, table in changelogs.items():
@@ -301,7 +299,6 @@ def _render_changelogs() -> None:
 
 
 def _render_disputed() -> None:
-    st.markdown("## Where it could have gone the other way")
     st.html(
         '<p class="cu-hint">Four points the policy settled in one direction and '
         "could have settled in the other. Reconstructed from the policy text and "
@@ -332,10 +329,20 @@ def main() -> None:
         "Six revisions, the verdicts that flipped, and the arguments behind them.",
     )
     before, after = _render_pair_picker()
-    _render_changed_list(before, after)
-    _render_scenario_toggle(before, after)
-    _render_changelogs()
-    _render_disputed()
+
+    flipped_tab, one_tab, log_tab, argued_tab = st.tabs(
+        ["What flipped", "One scenario, both versions", "The change log", "Where it was argued"]
+    )
+    with flipped_tab:
+        _render_changed_list(before, after)
+    with one_tab:
+        _render_scenario_toggle(before, after)
+    with log_tab:
+        _render_changelogs()
+    with argued_tab:
+        _render_disputed()
+
+    render_next("changes")
     render_footer(CURRENT)
 
 

@@ -45,6 +45,7 @@ from app.components.footer import render_footer
 from app.components.icons import rule as icon_rule
 from app.components.risk import data_class_scale
 from app.components.shell import escape, inject_styles, page_header
+from app.components.trail import render_next
 from app.styles.tokens import TOKENS, style_for
 from engine.models import DataClass
 
@@ -358,7 +359,6 @@ def _render_impact(config: Config) -> None:
 
 
 def _render_stress(config: Config, expert: bool) -> None:
-    st.markdown("## Try to break it")
     st.html(
         '<p class="cu-hint">Five things that get tried on agents. Each answer is '
         "worked out from the agent above as it stands now.</p>"
@@ -453,16 +453,25 @@ def main() -> None:
         _render_ladder(config)
     with right:
         _render_licence(_config(), expert)
-        _render_impact(_config())
 
-    _render_controls(_config(), expert)
-    _render_stress(_config(), expert)
+    # The ladder and the licence are the page. What the licence costs, and
+    # what it withstands, each get a tab.
+    controls_tab, impact_tab, stress_tab = st.tabs(
+        ["Required controls", "Impact level", "Try to break it"]
+    )
+    with controls_tab:
+        _render_controls(_config(), expert)
+    with impact_tab:
+        _render_impact(_config())
+    with stress_tab:
+        _render_stress(_config(), expert)
 
     if expert:
         every = sorted({clause for _c, clauses in controls(_config()) for clause in clauses})
         render_clause_chips(every, label="Every clause behind this agent")
         render_clause_drawer(every, VERSION)
 
+    render_next("agents")
     render_footer(VERSION)
 
 

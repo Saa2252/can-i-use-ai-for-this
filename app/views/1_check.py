@@ -17,6 +17,8 @@ stored.
 
 from __future__ import annotations
 
+import random
+
 import streamlit as st
 
 from app.components.footer import render_footer
@@ -32,10 +34,10 @@ from app.components.inputs import (
     share_url,
     write_query_params,
 )
-from app.components.legend import render_data_class_key
 from app.components.risk import option_styles
 from app.components.shell import escape, inject_styles
 from app.components.tiers import render_tier_strip
+from app.components.trail import render_next
 from app.components.verdict_card import (
     render_alternatives,
     render_answer,
@@ -48,7 +50,7 @@ from app.components.verdict_card import (
 from app.styles.tokens import STATUS_STYLES
 from engine.models import Status
 from engine.rules import evaluate
-from engine.scenarios import scenario
+from engine.scenarios import load_scenarios, scenario
 
 VERSION = "v1_6"
 
@@ -163,6 +165,14 @@ def _active_example() -> int | None:
     return None
 
 
+def _surprise() -> None:
+    """One of the scenarios the six cards do not show, picked at random."""
+    shown = {number for number, _label, _icon in EXAMPLES}
+    active = _active_example()
+    pool = [s.n for s in load_scenarios() if s.n not in shown and s.n != active]
+    _ask_for_a_guess(random.choice(pool))
+
+
 def _render_examples(*, show_active: bool = True) -> None:
     """The six cards, with the loaded one marked.
 
@@ -187,6 +197,14 @@ def _render_examples(*, show_active: bool = True) -> None:
                 help=scenario(number).title,
                 width="content",
             )
+        st.button(
+            "Surprise me",
+            key="cu_example_random",
+            icon=":material/casino:",
+            on_click=_surprise,
+            help="One of the other scenarios, picked at random.",
+            width="content",
+        )
     if active is not None:
         st.html(f'<p class="cu-meta">Loaded: {escape(scenario(active).title)}</p>')
 
@@ -332,13 +350,13 @@ def main() -> None:
         "and the tier decides what data may go in.</p>"
     )
     render_tier_strip(VERSION)
-    render_data_class_key(VERSION)
 
     write_query_params(included)
 
     if inputs is not None:
         render_sticky_verdict(evaluate(inputs, VERSION))
 
+    render_next("check")
     render_footer(VERSION)
 
 

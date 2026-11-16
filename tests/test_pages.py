@@ -315,7 +315,7 @@ def test_check_says_where_the_data_classes_are_defined():
     the policy does not contain.
     """
     at = open_page("check")
-    assert "What the five data classes mean" in {e.label for e in at.expander}
+    assert "The tiers and the five data classes, in full" in {e.label for e in at.expander}
 
     page = body(at)
     assert "Data Classification Standard" in page
@@ -726,7 +726,7 @@ def test_a_nonsense_shared_score_is_ignored_rather_than_shown():
 def test_policy_page_shows_the_staff_summary_first():
     at = open_page("policy")
     page = body(at)
-    assert "AI at work, on one page" in page
+    assert [tab.label for tab in at.tabs][0] == "On one page"
     assert "Always" in page and "Ask first" in page and "Never" in page
     assert "Use approved AI tools with your work account." in page
 

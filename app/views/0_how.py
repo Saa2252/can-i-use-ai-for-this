@@ -28,6 +28,7 @@ from app.components.method import (
     whole_policy_basis,
 )
 from app.components.shell import escape, inject_styles, page_header
+from app.components.trail import render_next
 from app.styles.tokens import BASIS_ICONS, BASIS_LABELS, STATUS_STYLES
 from engine.models import BasisType, Status
 
@@ -159,7 +160,6 @@ def _render_figures() -> None:
 
 
 def _render_rule() -> None:
-    st.markdown("## A rule, as it is written")
     st.html(
         '<p class="cu-hint">This is the whole grammar: field and value pairs, '
         "and <code>all_of</code>, <code>any_of</code>, <code>none_of</code> to "
@@ -221,7 +221,6 @@ GUARANTEES: tuple[tuple[str, str], ...] = (
 
 
 def _render_guarantees() -> None:
-    st.markdown("## What you can check")
     for title, body in GUARANTEES:
         st.html(
             f'<p class="cu-limit">{escape(title)}</p><p class="cu-clause__text">{escape(body)}</p>'
@@ -236,7 +235,6 @@ def _render_guarantees() -> None:
 def _render_crosswalk() -> None:
     rows = crosswalk(VERSION)
     counts = basis_counts()
-    st.markdown("## Where the law sits behind the policy")
     st.html(
         f'<p class="cu-hint">{len(rows)} entries over {len({r.clause for r in rows})} '
         f"clauses: {counts[BasisType.LAW]} from law, {counts[BasisType.STANDARD]} from a "
@@ -306,7 +304,6 @@ def _render_crosswalk() -> None:
 def _render_coverage() -> None:
     rows = coverage(VERSION)
     f = figures(VERSION)
-    st.markdown("## What the rules reach, and what they do not")
     st.html(
         f'<p class="cu-hint">{f.clauses_cited} of {f.clauses} clauses are cited by at '
         "least one rule. The rest are not missing from the rules: they describe "
@@ -341,7 +338,6 @@ def _render_coverage() -> None:
 
 
 def _render_adopt() -> None:
-    st.markdown("## Run your own policy through it")
     st.html(
         '<p class="cu-hint">The app knows nothing about this particular policy. It '
         "knows a document shape and a rule grammar.</p>"
@@ -368,11 +364,24 @@ def main() -> None:
     )
     _render_flow()
     _render_figures()
-    _render_rule()
-    _render_guarantees()
-    _render_crosswalk()
-    _render_coverage()
-    _render_adopt()
+
+    # The picture and the numbers are the page. The rest is for the reader
+    # who wants to check a claim, and each claim gets its own tab.
+    rule_tab, checks_tab, law_tab, reach_tab, adopt_tab = st.tabs(
+        ["A rule, as written", "What you can check", "The law behind it", "Reach", "Adopt it"]
+    )
+    with rule_tab:
+        _render_rule()
+    with checks_tab:
+        _render_guarantees()
+    with law_tab:
+        _render_crosswalk()
+    with reach_tab:
+        _render_coverage()
+    with adopt_tab:
+        _render_adopt()
+
+    render_next("how")
     render_footer(VERSION)
 
 
