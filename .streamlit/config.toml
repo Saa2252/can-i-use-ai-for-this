@@ -2,10 +2,17 @@
 
 [theme]
 base = "light"
-primaryColor = "#0F5E66"
-backgroundColor = "#FAFAF7"
-secondaryBackgroundColor = "#FFFFFF"
-textColor = "#1C2430"
+primaryColor = "#1C2B44"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F6F5F2"
+textColor = "#0F1114"
+borderColor = "#E8E6E1"
+linkColor = "#1C2B44"
+baseRadius = "small"
+buttonRadius = "small"
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+headingFont = "'Inter Tight':https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700&display=swap"
+codeFont = "'JetBrains Mono':https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap"
 
 [client]
 toolbarMode = "minimal"

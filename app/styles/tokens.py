@@ -4,19 +4,21 @@ This module is the single source of the token *values*; `app.css` holds every
 rule and refers to them through CSS custom properties, so there is one
 stylesheet and one place where a colour is defined.
 
+The look is an editorial one: white paper, near-black ink, hairline rules,
+square corners and one midnight accent. Nothing warm, nothing rounded.
+
 A note on contrast. Measured against white surface:
 
-    ALLOWED        #1E7B4A   4.6:1   AA for body text
-    NEEDS_APPROVAL #B26B00   4.2:1   AA for large text only
-    NOT_PERMITTED  #9A4A12   5.9:1   AA for body text
-    PROHIBITED     #B42318   6.6:1   AA for body text
-    accent teal    #0F5E66   7.5:1   AA for body text
-    muted          #5B6573   5.7:1   AA for body text (on #FAFAF7)
+    ALLOWED        #1D6B47   6.3:1   AA for body text
+    NEEDS_APPROVAL #A26100   4.6:1   AA for body text, used at large sizes
+    NOT_PERMITTED  #8C4519   7.0:1   AA for body text
+    PROHIBITED     #A3221A   7.3:1   AA for body text
+    accent midnight #1C2B44 13.9:1   AA for body text
+    muted          #5E636B   6.1:1   AA for body text
 
-Amber clears AA for large text but not for 16px body text, so a status colour
-is only ever used for the large status line, icons, borders and tinted
-backgrounds. Body copy always uses `--text` or `--muted`. Chips put dark text
-on a tinted background rather than coloured text on white.
+A status colour is only ever used for the large status line, icons, borders
+and tinted backgrounds. Body copy always uses `--text` or `--muted`. Chips put
+dark text on a tinted background rather than coloured text on white.
 """
 
 from __future__ import annotations
@@ -31,27 +33,29 @@ from engine.models import ApprovalKind, Status
 
 TOKENS: dict[str, str] = {
     # surfaces and type
-    "bg": "#FAFAF7",
+    "bg": "#FFFFFF",
     "surface": "#FFFFFF",
-    "text": "#1C2430",
-    "muted": "#5B6573",
-    "accent": "#0F5E66",
-    "border": "#E3E3DC",
-    "border-strong": "#CFCFC6",
+    "text": "#0F1114",
+    "muted": "#5E636B",
+    "accent": "#1C2B44",
+    "border": "#E8E6E1",
+    "border-strong": "#C9C6BF",
     # verdicts
-    "allowed": "#1E7B4A",
-    "needs-approval": "#B26B00",
-    "not-permitted": "#9A4A12",
-    "prohibited": "#B42318",
+    "allowed": "#1D6B47",
+    "needs-approval": "#A26100",
+    "not-permitted": "#8C4519",
+    "prohibited": "#A3221A",
     # verdict tints, for card headers and chips
-    "allowed-tint": "#EAF4EE",
-    "needs-approval-tint": "#FBF1E1",
-    "not-permitted-tint": "#F8EDE4",
-    "prohibited-tint": "#FBEBE9",
+    "allowed-tint": "#EFF4F1",
+    "needs-approval-tint": "#F8F2E6",
+    "not-permitted-tint": "#F6EFE9",
+    "prohibited-tint": "#F8EDEB",
+    # a quiet wash for bands and hovers
+    "wash": "#F6F5F2",
     # layout
     "measure": "720px",
-    "radius": "10px",
-    "radius-sm": "6px",
+    "radius": "3px",
+    "radius-sm": "2px",
     "gutter": "16px",
 }
 

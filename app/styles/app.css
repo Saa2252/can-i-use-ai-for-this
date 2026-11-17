@@ -72,7 +72,8 @@ h1,
 h2,
 h3 {
   color: var(--text);
-  letter-spacing: -0.01em;
+  font-weight: 600 !important;
+  letter-spacing: -0.025em;
 }
 
 /* Streamlit sizes markdown headings from a generated class
@@ -202,7 +203,7 @@ h3 {
   background: var(--surface);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--text);
@@ -247,7 +248,7 @@ h3 {
 .cu-clause:last-child { margin-bottom: 0; }
 
 .cu-clause__id {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.8rem;
   font-weight: 700;
   color: var(--accent);
@@ -283,7 +284,7 @@ h3 {
   margin-left: 0.35rem;
   padding: 0.1rem 0.35rem;
   border: 1px solid var(--border-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   font-size: 0.7rem;
   font-weight: 600;
   color: var(--muted);
@@ -338,7 +339,7 @@ h3 {
   gap: 0.4rem;
   padding: 0.3rem 0.6rem;
   border: 1px solid var(--border-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   font-size: 0.82rem;
   color: var(--text);
   background: var(--surface);
@@ -348,7 +349,7 @@ h3 {
   font-size: 0.75rem;
   font-weight: 700;
   padding: 0.05rem 0.4rem;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
 }
 
 .cu-whatif--allowed { border-color: var(--allowed); }
@@ -399,7 +400,7 @@ h3 {
   gap: 0.3rem;
   padding: 0.18rem 0.5rem;
   border: 1px solid var(--border-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--text);
@@ -478,7 +479,7 @@ h3 {
 .cu-pill {
   display: inline-block;
   padding: 0.2rem 0.5rem;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--text);
@@ -626,7 +627,7 @@ div[data-testid="stExpander"] details {
 .cu-flow__box--verdict { border-style: dashed; }
 
 .cu-flow__kicker {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.72rem;
   color: var(--accent);
 }
@@ -727,7 +728,7 @@ div[data-testid="stExpander"] details {
 .cu-xwalk__first td { border-top: 1px solid var(--border-strong); }
 
 .cu-xwalk__id {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.8rem;
   font-weight: 700;
   color: var(--accent);
@@ -816,8 +817,8 @@ div[data-testid="stExpander"] details {
   margin: -0.25rem 0 0.9rem calc(50% - 50vw);
   padding: 2rem calc(max(0px, (100vw - var(--col)) / 2) + var(--gutter)) 1.6rem;
   background:
-    radial-gradient(60rem 18rem at 85% -20%, rgba(255, 255, 255, 0.14), transparent 60%),
-    linear-gradient(120deg, #0A454C 0%, var(--accent) 55%, #15757F 100%);
+    #0D0F13;
+  border-bottom: 1px solid #000;
   color: #fff;
   gap: 0.4rem;
 }
@@ -836,7 +837,7 @@ div[data-testid="stExpander"] details {
   margin: 0.3rem 0 0.9rem;
   font-size: 1.05rem;
   line-height: 1.5;
-  color: rgba(255, 255, 255, 0.86);
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .cu-hero__more { margin: 0; }
@@ -844,7 +845,7 @@ div[data-testid="stExpander"] details {
 .cu-hero__link {
   display: inline-block;
   padding: 0.45rem 0.9rem;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   background: #fff;
   color: var(--accent) !important;
   font-size: 0.85rem;
@@ -853,7 +854,7 @@ div[data-testid="stExpander"] details {
   white-space: nowrap;
 }
 
-.cu-hero__link:hover { background: var(--allowed-tint); }
+.cu-hero__link:hover { background: var(--wash); }
 
 /* Section labels pick up the accent, so the page's structure reads at a
    glance instead of as a column of grey. */
@@ -869,7 +870,7 @@ div[data-testid="stExpander"] details {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
-  box-shadow: 0 1px 2px rgba(28, 36, 48, 0.06);
+  box-shadow: none;
   font-weight: 600;
   color: var(--text);
   transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
@@ -880,16 +881,15 @@ div[data-testid="stExpander"] details {
 }
 
 .st-key-cu_examples .stButton button:hover {
-  transform: translateY(-1px);
-  border-color: var(--accent);
-  box-shadow: 0 4px 12px rgba(15, 94, 102, 0.16);
+  border-color: var(--text);
+  box-shadow: none;
   color: var(--text);
 }
 
 /* The sentence is the centrepiece and reads at a size that says so. */
 .st-key-cu_sentence {
   padding: 1rem 1.15rem;
-  box-shadow: 0 2px 10px rgba(28, 36, 48, 0.05);
+  box-shadow: none;
 }
 
 .cu-say { font-size: 1.2rem; }
@@ -906,14 +906,14 @@ div[data-testid="stExpander"] details {
 .st-key-cu_slot_data_class .stButton button:hover,
 .st-key-cu_slot_tool .stButton button:hover {
   border-bottom-color: var(--accent);
-  background: rgba(15, 94, 102, 0.06);
+  background: rgba(28, 43, 68, 0.06);
   color: var(--accent);
 }
 
 /* The verdict is the answer and gets the weight of one. */
 .cu-card {
   padding: 1.2rem 1.35rem;
-  box-shadow: 0 6px 18px rgba(28, 36, 48, 0.07);
+  box-shadow: none;
 }
 
 .cu-status { font-size: 1.6rem; }
@@ -969,11 +969,11 @@ div[data-testid="stExpander"] details {
   border-top: 3px solid var(--accent);
   border-radius: var(--radius);
   background: var(--surface);
-  box-shadow: 0 1px 2px rgba(28, 36, 48, 0.05);
+  box-shadow: none;
 }
 
 .cu-tier__kicker {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.72rem;
   font-weight: 700;
   color: var(--accent);
@@ -1144,7 +1144,7 @@ div[data-testid="stExpander"] details {
 
 /* Clause ids quoted inline, inside a sentence rather than as a chip row. */
 .cu-cite {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.78em;
   color: var(--muted);
   white-space: nowrap;
@@ -1271,7 +1271,7 @@ div[data-testid="stExpander"] details {
 }
 
 .cu-gate__clause {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.72rem;
   padding: 0.05rem 0.35rem;
   border-radius: var(--radius-sm);
@@ -1470,7 +1470,7 @@ div[data-testid="stExpander"] details {
 /* The deciding clause, shown on a square in Expert view only. The generated
    stylesheet hides this in Plain view. */
 .cu-grid-clauses {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.65rem;
   color: var(--muted);
 }
@@ -1685,7 +1685,7 @@ div[data-testid="stExpander"] details {
   display: inline-block;
   margin-left: 0.35rem;
   padding: 0.02rem 0.4rem;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   background: var(--bg);
   border: 1px solid var(--border-strong);
   font-size: 0.72rem;
@@ -1804,18 +1804,17 @@ div[data-testid="stExpander"] details {
   margin: 2rem 0 0.5rem;
   padding: 1rem 1.2rem;
   border: 1px solid var(--border);
-  border-left: 5px solid var(--accent);
+  border-left: 3px solid var(--accent);
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--text) !important;
   text-decoration: none !important;
-  box-shadow: 0 6px 18px rgba(28, 36, 48, 0.07);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition: background 0.12s ease, border-color 0.12s ease;
 }
 
 .cu-next-page:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(28, 36, 48, 0.1);
+  background: var(--wash);
+  border-color: var(--text);
 }
 
 .cu-next-page__kicker {
