@@ -34,15 +34,16 @@ Four verdicts, and the difference between the middle two is the point:
 | **Not permitted** | Blocked as described — but a compliant route exists, and the card shows it. |
 | **Prohibited** | A hard line in Section 6. No approval route, and no exceptions. |
 
-Eight pages: **Check** (the hero), **How it works** (the method, for a
-governance reader), **Matrix** (the data × tier grid), **Agents** (a permission
-builder), **Quiz**, **Changes** (two comparisons), the full **Policy** with
-search, and **Limits** — what the policy and the tool do not cover. Each page
+Seven pages: **Check** (the hero), **Matrix** (the data × tier grid),
+**Agents** (a permission builder), **How it works** (the method, for a
+governance reader), **Quiz**, the full **Policy** with search, and **Limits** —
+what the policy and the tool do not cover. How the policy changed between
+versions is [below](#what-changed-between-versions), not a page. Each page
 opens on its main thing and keeps the rest under tabs, and each ends with a
 card naming the page to read next, so a visitor can walk the whole app without
 opening the navigation.
 
-![How it works: three files in, one engine, one verdict, five pages](docs/screenshots/how-1280-picture.jpg)
+![How it works: three files in, one engine, one verdict, four pages](docs/screenshots/how-1280-picture.jpg)
 
 ## Rules as data, not code
 
@@ -113,28 +114,48 @@ point of the backing layer, and it only became visible because the law moved.
 
 ## Screenshots
 
-| Matrix | Changes |
-|---|---|
-| ![The 7.1 grid](docs/screenshots/matrix.jpg) | ![Scenarios whose verdict changed](docs/screenshots/review-changed-verdicts.jpg) |
-
-Each policy version is encoded as a rulebook in which every rule cites the
-clause it comes from. The same 21 scenarios run through both, and four
-verdicts changed. The comparison is mechanical, but **each rulebook is a
-reading of its version's text** — which is why every card shows the clause, so
-the reading can be checked rather than taken on trust.
-
-The second comparison is the more interesting one. Running those 21 scenarios
-through v1.5 and v1.6 changes **no verdict at all** and adds clauses to six.
-That is what closing a legal gap looks like: nothing moves at the desk, and
-more has to be evidenced at an audit. The page says so rather than showing an
-empty list, because an empty list reads as "nothing happened".
+<img src="docs/screenshots/matrix.jpg" alt="The 7.1 grid on a phone" width="375">
 
 Every cell of the matrix is computed by the same engine the Check page uses, so
 the grid cannot drift from the verdicts. Note that Tier B's "⊘ No" and Tier C's
 "✕ No" are deliberately different marks: one is not permitted with a route, the
 other is prohibited outright.
 
-![The policy browser with the 7.1 table and backing notes](docs/screenshots/policy-browser.jpg)
+## What changed between versions
+
+Each policy version is encoded as a rulebook in which every rule cites the
+clause it comes from. The same 21 scenarios run through each pair, and
+`engine/review.py` reports what moved. The comparison is mechanical, but
+**each rulebook is a reading of its version's text**, so the clause is the
+thing to check.
+
+**v1.0 → v1.5: four of 21 verdicts changed.**
+
+| Scenario | Under v1.0 | Under v1.5 |
+|---|---|---|
+| Agent emails an address not on the list | ! Needs approval (one-time) | ! Needs approval (each action) |
+| Agent adds a new payee to its own allowlist | ! Needs approval (one-time) | ⊘ Not permitted |
+| Notetaker in a meeting with legal counsel | ✓ Allowed | ! Needs approval (one-time) |
+| Open-weight model on a personal laptop, with internal docs | ✕ Prohibited | ⊘ Not permitted |
+
+**v1.5 → v1.6: no verdict changed**, and six scenarios now cite clauses v1.5
+had no clause for. That is what closing a legal gap looks like: nothing moves
+at the desk, and more has to be evidenced at an audit.
+
+Four points the review could have settled either way, reconstructed from the
+policy text and its change log (this project holds no transcript of the review):
+
+- **Fatigue detection** — emotion recognition (banned by 6.1) or a safety use?
+  Settled as needing approval under 8.7 and 8.8 (change log 1.1).
+- **The ban on secrets** — should 6.3 bend for a self-hosted model with no
+  egress? It stays absolute, with controls around it instead (B.5.1, B.5.2;
+  change log 1.1).
+- **Platform labelling** — platform rules joined contracts and law as things
+  that can require a label despite the default (10.2; change log 1.2).
+- **The R1–R9 codes** — dropped, so "Restricted" names only the data class
+  (8.1, 7.4; change logs 1.3 and 1.4).
+
+<img src="docs/screenshots/policy-browser.jpg" alt="The policy browser with the 7.1 table and backing notes" width="375">
 
 ## Running it
 
@@ -214,7 +235,7 @@ Two are worth knowing about before you trust a verdict:
 - **Q4** — whether a self-hosted model on a personal device counts as Tier C
   decides whether that case is *prohibited* or *not permitted with a route*.
   The two readings give opposite advice about whether a compliant path exists.
-- **Q7** — the Changes page sets out four points the policy could have settled
+- **Q7** — [What changed between versions](#what-changed-between-versions) sets out four points the policy could have settled
   either way. They are reconstructed from the policy text and its change log;
   this project holds no transcript of the actual review.
 

@@ -24,7 +24,6 @@ PAGES = {
     "matrix": "views/2_matrix.py",
     "agents": "views/3_agent_builder.py",
     "quiz": "views/4_scenarios.py",
-    "changes": "views/5_review.py",
     "policy": "views/6_policy.py",
     "limits": "views/7_limits.py",
 }
@@ -52,7 +51,7 @@ def test_the_trail_lists_every_page_once_and_wraps():
     slugs = [slug for slug, _t, _b in TRAIL]
     assert sorted(slugs) == sorted(PAGES), "every page is on the trail, once"
     assert next_page("limits")[0] == "check"
-    assert next_page("check")[0] == "quiz"
+    assert next_page("check")[0] == "agents"
 
 
 @pytest.mark.parametrize("name", list(PAGES))
@@ -76,7 +75,6 @@ def test_every_page_ends_with_one_card_pointing_at_the_next(name: str):
     [
         ("how", "A rule, as written", 5),
         ("agents", "Required controls", 3),
-        ("changes", "What flipped", 4),
         ("policy", "On one page", 2),
     ],
 )

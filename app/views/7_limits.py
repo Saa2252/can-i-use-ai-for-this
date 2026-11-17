@@ -116,11 +116,11 @@ OPEN: tuple[dict[str, object], ...] = (
     {
         "title": "The arguments behind the revisions are reconstructed",
         "question": (
-            "The Changes page sets out four points that could have gone the other "
-            "way. They come from the policy text and its change log."
+            "The README sets out four points in the policy's revisions that could "
+            "have gone the other way. They come from the policy text and its change log."
         ),
         "matters": (
-            "No transcript of the actual review exists, so those pages show the "
+            "No transcript of the actual review exists, so the README gives the "
             "two readings and where the decision is recorded, never who argued "
             "what. Treat them as reconstruction."
         ),

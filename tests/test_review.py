@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from streamlit.testing.v1 import AppTest
 
 from engine.models import (
     Activity,
@@ -23,25 +22,7 @@ from engine.review import changed_verdicts, compare, compare_all
 from engine.rules import evaluate, load_rules
 from engine.scenarios import scenario
 
-ENTRYPOINT = str(Path(__file__).resolve().parent.parent / "app" / "main.py")
-
-
-def open_review() -> AppTest:
-    at = AppTest.from_file(ENTRYPOINT, default_timeout=60)
-    at.run()
-    at.switch_page("views/5_review.py")
-    at.run()
-    return at
-
-
-def body(at: AppTest) -> str:
-    return "\n".join(
-        [
-            *(m.value for m in at.markdown),
-            *(h.value for h in at.html if "<style>" not in h.value),
-            *(c.value for c in at.code),
-        ]
-    )
+README = Path(__file__).resolve().parent.parent / "README.md"
 
 
 # --------------------------------------------------------------------------
@@ -212,107 +193,23 @@ def test_changelogs_contribute_no_clauses():
 
 
 # --------------------------------------------------------------------------
-# The Review page
+# The README's comparison
 # --------------------------------------------------------------------------
 
 
-def test_review_page_runs():
-    assert not open_review().exception
+def test_the_readme_lists_every_flip_the_engine_finds():
+    """The table is written once by hand, so the engine checks it."""
+    text = README.read_text(encoding="utf-8")
+    changes = changed_verdicts("v1_0", "v1_5")
+    assert f"four of {len(compare_all('v1_0', 'v1_5'))} verdicts changed" in text
+    assert len(changes) == 4
+    for change in changes:
+        assert f"| {change.scenario.title} |" in text
 
 
-def test_review_page_lists_the_changed_scenarios():
-    at = open_review()
-    page = body(at)
-    assert [tab.label for tab in at.tabs][0] == "What flipped"
-    assert "4 of 21 scenarios" in page
-    for title in (
-        "Agent emails an address not on the list",
-        "Agent adds a new payee to its own allowlist",
-        "Notetaker in a meeting with legal counsel",
-        "Open-weight model on a personal laptop, with internal docs",
-    ):
-        assert title in page
-
-
-def test_review_page_shows_both_versions_for_a_scenario():
-    at = open_review()
-    at.selectbox(key="cu_review_scenario").set_value(20).run()
-    page = body(at)
-    assert "Under v1.0" in page
-    assert "Under v1.5" in page
-    assert "Prohibited" in page and "Not permitted" in page
-
-
-def test_review_page_renders_the_changelog_cards():
-    at = open_review()
-    page = body(at)
-    assert "The change log" in {tab.label for tab in at.tabs}
-    assert "second narrow exception" in page
-    assert "The R1 to R9 labels are removed" in page
-
-
-def test_review_page_covers_the_four_disputed_points():
-    """Titles are expander labels, which AppTest exposes separately from text."""
-    at = open_review()
-    assert "Where it was argued" in {tab.label for tab in at.tabs}
-    labels = {expander.label for expander in at.expander}
-    for title in (
-        "Fatigue detection",
-        "The absolute ban on secrets",
-        "Platform labelling",
-        "The R1 to R9 codes",
-    ):
-        assert title in labels
-
-
-def test_changelog_expanders_count_changes_grammatically():
-    labels = {expander.label for expander in open_review().expander}
-    assert "Version 1.5 — 1 change" in labels
-    assert "Version 1.4 — 4 changes" in labels
-
-
-def test_disputed_points_give_both_readings_and_say_what_the_record_is():
-    page = body(open_review())
-    assert page.count("One reading") == 4
-    assert page.count("The other") == 4
-    assert page.count("How it was settled") == 4
-    assert "no transcript of the review itself" in page
-
-
-def test_disputed_points_only_cite_real_clauses():
-    import app.views  # noqa: F401
-
-    source = (Path(__file__).resolve().parent.parent / "app" / "views" / "5_review.py").read_text(
-        encoding="utf-8"
-    )
-    policy = load_policy("v1_5")
-    import re
-
-    for clause_id in re.findall(r'"(\d{1,2}\.\d{1,2}|[BC]\.\d{1,2}(?:\.\d{1,2})?)"', source):
-        assert clause_id in policy.clauses
-
-
-def test_the_notetaker_flip_is_told_first() -> None:
-    """The only flip that takes something away from someone already doing it.
-
-    Ordered by a rule, not by hand: a verdict that was Allowed and no longer
-    is comes before the rest, so the list stays right if a ruleset changes.
-    """
-    at = open_review()
-    page = body(at)
-    titles = [c.scenario.title for c in changed_verdicts("v1_0", "v1_5")]
-    positions = {title: page.find(title) for title in titles if page.find(title) >= 0}
-    assert positions, "no flip titles rendered"
-    first = min(positions, key=positions.get)
-    assert "Notetaker" in first, f"the list opens on {first!r}"
-
-
-def test_every_flip_card_cites_the_clauses_that_moved() -> None:
-    """The old card said "the answer itself changed" and nothing checkable."""
-    page = body(open_review())
-    assert "the answer itself changed" not in page
-    for change in changed_verdicts("v1_0", "v1_5"):
-        if not change.added_clauses:
-            continue
-        cites = ", ".join(change.added_clauses)
-        assert cites in page, f"{change.scenario.title} does not cite {cites}"
+def test_the_readme_is_right_that_v1_6_changed_no_verdict():
+    text = README.read_text(encoding="utf-8")
+    everything = compare_all("v1_5", "v1_6")
+    assert not any(c.changed for c in everything)
+    gained = sum(1 for c in everything if c.added_clauses)
+    assert f"no verdict changed**, and {['zero','one','two','three','four','five','six'][gained]} scenarios" in text

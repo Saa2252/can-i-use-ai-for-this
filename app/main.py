@@ -130,10 +130,8 @@ PAGES = [
     # Streamlit ignores a url_path here, so setting one only suggests a
     # /check URL that 404s. Shareable verdict links are /?data_class=...
     st.Page("views/1_check.py", title="Check", icon=":material/rule:", default=True),
-    # Second, not last: a governance reader wants to know what kind of thing
-    # this is before they trust an answer from it. The file is numbered 0
-    # because it is the one to read first; the Check page keeps the root URL.
-    st.Page("views/0_how.py", title="How it works", icon=":material/account_tree:", url_path="how"),
+    # Try it, then the two pages that show the rules at a glance, then the
+    # method and the reference pages.
     st.Page("views/2_matrix.py", title="Matrix", icon=":material/grid_on:", url_path="matrix"),
     st.Page(
         "views/3_agent_builder.py",
@@ -141,8 +139,12 @@ PAGES = [
         icon=":material/smart_toy:",
         url_path="agents",
     ),
+    # The file is numbered 0 because it is the one a governance reader should
+    # read first; the Check page keeps the root URL.
+    st.Page("views/0_how.py", title="How it works", icon=":material/account_tree:", url_path="how"),
     st.Page("views/4_scenarios.py", title="Quiz", icon=":material/quiz:", url_path="quiz"),
-    st.Page("views/5_review.py", title="Changes", icon=":material/history:", url_path="changes"),
+    # The version comparison (v1.0 to v1.5, v1.5 to v1.6) is in the README,
+    # not a page: it is evidence for a reviewer, not something staff use.
     st.Page("views/6_policy.py", title="Policy", icon=":material/menu_book:", url_path="policy"),
     st.Page("views/7_limits.py", title="Limits", icon=":material/warning:", url_path="limits"),
 ]

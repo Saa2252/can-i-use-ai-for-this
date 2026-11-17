@@ -479,7 +479,7 @@ ALL_PAGES: list[str] = re.findall(
 def test_every_registered_page_is_discovered() -> None:
     """Guards the regex above: if it silently matched nothing, so would the
     parametrized test below, and an empty sweep passes."""
-    assert len(ALL_PAGES) == 8, ALL_PAGES
+    assert len(ALL_PAGES) == 7, ALL_PAGES
 
 
 @pytest.mark.parametrize("page", ALL_PAGES)

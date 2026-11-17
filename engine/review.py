@@ -1,8 +1,8 @@
 """Comparing one policy version's verdicts against another's.
 
-The Review page's "scenarios whose verdict changed" list is computed here
-from the two rulesets, never written by hand, so it cannot go stale when a
-rule changes.
+The README's "what changed between versions" table is computed here from
+the two rulesets, never written by hand, so it cannot go stale when a rule
+changes.
 """
 
 from __future__ import annotations

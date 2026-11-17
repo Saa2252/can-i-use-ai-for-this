@@ -3,7 +3,7 @@
 # Generated from rules_v1_5.yaml. v1.6 closes procedural gaps rather than
 # changing what anyone may do, so NO VERDICT CHANGES between v1.5 and v1.6.
 # What changes is what a verdict obliges the organization to do: three rules
-# gain clauses and requirements that v1.5 had no clause for. The Changes page
+# gain clauses and requirements that v1.5 had no clause for. The README
 # shows that as citations moving while statuses hold, which is the point.
 #
 # Every rule cites clause ids that must exist in the parsed v1.6 policy

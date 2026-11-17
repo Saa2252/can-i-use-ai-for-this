@@ -328,5 +328,5 @@ law. The Limits page now says this on the record.
 Running all 21 scenarios through v1.5 and v1.6 changes **no verdict at all**,
 and adds clauses to six. Closing a legal gap turned out to be invisible at the
 desk and material at an audit: what a person may do did not move, what the
-organization must evidence did. The Changes page shows that rather than an
+organization must evidence did. The README shows that rather than an
 empty list, because an empty list would read as "nothing happened".

@@ -1608,9 +1608,15 @@ div[data-testid="stExpander"] details {
     width: 21% !important;
   }
 
+  /* Streamlit sizes a button's paragraph and its wrapper itself, so the size
+     is set here outright; otherwise the label stays at 14px and splits
+     mid-word. */
   .st-key-cu_matrix .stButton button p {
+    font-size: 0.7rem !important;
     white-space: normal;
     overflow: visible;
+    overflow-wrap: normal;
+    word-break: normal !important;
     text-overflow: clip;
   }
 
@@ -1619,8 +1625,10 @@ div[data-testid="stExpander"] details {
   /* The row label has 21% of a 375px screen, and "Confidential" broke across
      two lines mid-word. The page already breaks long words to stop sideways
      scroll; a row heading is short enough not to need it. */
-  .cu-grid-row {
-    font-size: 0.78rem;
+  /* Scoped under .block-container so it outranks the page-wide
+     `.block-container p` break rule. */
+  .block-container .cu-grid-row {
+    font-size: 0.74rem;
     overflow-wrap: normal;
     word-break: normal;
     hyphens: none;

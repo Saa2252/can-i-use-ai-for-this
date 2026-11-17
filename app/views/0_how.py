@@ -51,7 +51,7 @@ SEVERITY: tuple[Status, ...] = (
 
 #: The pages that read the engine. Named so the claim "they cannot drift
 #: from each other" is specific.
-CONSUMERS: tuple[str, ...] = ("Check", "Matrix", "Agents", "Quiz", "Changes")
+CONSUMERS: tuple[str, ...] = ("Check", "Matrix", "Agents", "Quiz")
 
 
 # --------------------------------------------------------------------------
@@ -118,7 +118,7 @@ def _render_flow() -> None:
         )
         + arrow
         + f'<ul class="cu-chips cu-flow__pages">{pages}</ul>'
-        + '<p class="cu-meta cu-flow__caption">Five pages read the same engine, so '
+        + '<p class="cu-meta cu-flow__caption">Four pages read the same engine, so '
         "a square on the Matrix cannot disagree with the Check page.</p>"
         "</div>"
     )
